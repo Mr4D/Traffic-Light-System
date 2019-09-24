@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
+
 #include "stateMachine.h"
 
 int main(void) {
@@ -12,6 +16,8 @@ int main(void) {
 	pthread_t traffic_state_machine;
 
 	pthread_create(&traffic_state_machine, NULL, trafficStateMachine, NULL);
+	pthread_join(traffic_state_machine, NULL);
 
+	printf("Main terminating");
 	return EXIT_SUCCESS;
 }
