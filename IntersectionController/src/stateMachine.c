@@ -162,13 +162,65 @@ void changeTrafficState_offPeak() {
 	}
 }
 
+void *thread_ex(void *data) {
+
+	int d = *((int*)data);
+	printf("thread %d with data=%d started. ", pthread_self(), d);
+	printf(" val=%d\n", val++);
+	sleep(1);
+
+	return EXIT_SUCCESS;
+
+}
+
+void initiliseTimer() {
+
+	chid = ChannelCreate(0); // Create a communications channel
+
+	event.sigev_coid = ConnectAttach(ND_LOCAL_NODE, 0, chid, _NTO_SIDE_CHANNEL, 0);
+
+	if(event.sigev_coid != -1) {
+
+		event.sigev_notify = SIGEV_PULSE;
+
+		struct sched_param th_param;
+		pthread_getschedparam(pthread_self(), NULL, &th_param);
+		event.sigev_priority = th_param.sched_curpriority; // old QNX660 version getprio(0);
+
+		event.sigev_code = MY_PULSE_CODE;
+
+		// create the timer, binding it to the event
+		if (timer_create(CLOCK_REALTIME, &event, &timer_id) == -1) {
+			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
+			perror(NULL);
+			exit(EXIT_FAILURE);
+		}
+
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_traffic_straight.it_value.tv_sec = 1;				// 1 second
+		itime_traffic_straight.it_value.tv_nsec = 500000000;	// 500 million nsecs = .5 secs
+		itime_traffic_straight.it_interval.tv_sec = 1;			// 1 second
+		itime_traffic_straight.it_interval.tv_nsec = 500000000;	// 500 million nsecs = .5 secs
+
+		// and start the timer!
+		timer_settime(timer_id, 0, &itime_traffic_straight, NULL);
+
+	}
+	else {
+
+		printf( (char *) stderr, "%c:  couldn't ConnectAttach to self!\n", gettid());
+		perror(NULL);
+		exit(EXIT_FAILURE);
+
+	}
+}
 
 void *trafficStateMachine(void * data) {
-	printf("State machine spawned\n");
 
 	while(1) {
 
 		if (mode == PEAK) {
+			rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);
 			changeTrafficState_peak();
 		}
 		else if (mode == OFF_PEAK) {
@@ -177,7 +229,6 @@ void *trafficStateMachine(void * data) {
 		else {
 			printf("Encountered an error\n");
 		}
-
 	}
 
 	return EXIT_SUCCESS;
