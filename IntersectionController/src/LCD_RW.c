@@ -1,29 +1,26 @@
 #include "LCD_comm.h"
+
 /*
- * I2C LCD test program using BBB I2C1
+ * Revised I2C LCD writing.
  *
- * LCD data:  MIDAS  MCCOG22005A6W-FPTLWI  Alphanumeric LCD, 20 x 2, Black on White, 3V to 5V, I2C, English, Japanese, Transflective
- * LCD data sheet, see:
- *                      http://au.element14.com/midas/mccog22005a6w-fptlwi/lcd-alpha-num-20-x-2-white/dp/2425758?ost=2425758&selectedCategoryId=&categoryNameResp=All&searchView=table&iscrfnonsku=false
+ * A collection of functions for initialising, configuring, reading and writing the LCD screen.
  *
- *  BBB P9 connections:
- *    - P9_Pin17 - SCL - I2C1	 GPIO3_2
- *    - P9_Pin18 - SDA - I2C1    GPIO3_1
+ * Use:
+ * 		- openLCD to open the LCD 'file' I/O
+ * 		- writeLCD to write to the LCD display
+ * 		||||||||||||||||||||||||||||||||||||||||||||||||||
+ * 		- I2cWrite to write configuration data accordingly
+ *		- Initialise_LCD initialises the LCD screen with a list of I2C writes
+ * 		- SetCursor sets the cursor data.
+ */
+
+/*
+ * Adem Karakaya || s36031133 || 24.09.2019
+ * Personal Notes:
  *
- *  LCD connections:
- *    - pin 1 – VOUT to the 5V     (external supply should be used)
- *    - pin 4 – VDD  to the 5V
- *    - pin 8 – RST  to the 5V
+ * 		- 20 Characters Max
+ * 		- Can update characters individually
  *
- *    - pin 2 - Not connected  (If 3.3V is used then add two caps)
- *    - pin 3 - Not connected  (If 3.3V is used then add two caps)
- *
- *    - pin 5 - VSS  to Ground
- *    - pin 6 – SDA  to the I2C SDA Pin  pulled high using a 4.7kohm resistor connected to 5V
- *    - pin 7 - SCL  to the I2C SCL Pin  pulled high using a 4.7kohm resistor connected to 5V
- *
- * Author:  Samuel Ippolito
- * Date:	10/04/2017
  */
 
 
@@ -114,18 +111,20 @@ void Initialise_LCD (int *fd, _Uint32t LCDi2cAdd)
 }
 
 
-/*
- * Adem Karakaya || s36031133 || 24.09.2019
- * Personal Notes:
- *
- * 		- 20 Characters Max
- * 		- Can update characters individually
- *
- */
+
 
 
 int openLCD( int *filep)
 {
+	/* USE THIS
+	 * This is to open the LCD 'file' I/O and init.
+	 *
+	 * int * I/O 'file' pointer.
+	 *
+	 *
+	 *
+	 *
+	 */
 
 	int error;
 	volatile uint8_t LCDi2cAdd = 0x3C;
@@ -156,14 +155,14 @@ int openLCD( int *filep)
 
 int writeLCD(int row, int col, char write[], int* filep)
 {
-	/*
-	 * Integer of Row Chosen
-	 * Integer of Column Chosen
-	 * Character Array of what to write
+	/* USE THIS
+	 * Int of Row Chosen
+	 * Int of Column Chosen
+	 * Char [] of what to write
+	 * (Lim 20 Char)
 	 *
 	 * This will open the I2C file, then write to it what you will.
-	 *
-	 *
+	 * No messing around.
 	 */
 
 	volatile uint8_t LCDi2cAdd = 0x3C;
@@ -183,3 +182,30 @@ int writeLCD(int row, int col, char write[], int* filep)
 	return EXIT_SUCCESS;
 }
 
+
+/*
+ * I2C LCD test program using BBB I2C1
+ *
+ * LCD data:  MIDAS  MCCOG22005A6W-FPTLWI  Alphanumeric LCD, 20 x 2, Black on White, 3V to 5V, I2C, English, Japanese, Transflective
+ * LCD data sheet, see:
+ *                      http://au.element14.com/midas/mccog22005a6w-fptlwi/lcd-alpha-num-20-x-2-white/dp/2425758?ost=2425758&selectedCategoryId=&categoryNameResp=All&searchView=table&iscrfnonsku=false
+ *
+ *  BBB P9 connections:
+ *    - P9_Pin17 - SCL - I2C1	 GPIO3_2
+ *    - P9_Pin18 - SDA - I2C1    GPIO3_1
+ *
+ *  LCD connections:
+ *    - pin 1 – VOUT to the 5V     (external supply should be used)
+ *    - pin 4 – VDD  to the 5V
+ *    - pin 8 – RST  to the 5V
+ *
+ *    - pin 2 - Not connected  (If 3.3V is used then add two caps)
+ *    - pin 3 - Not connected  (If 3.3V is used then add two caps)
+ *
+ *    - pin 5 - VSS  to Ground
+ *    - pin 6 – SDA  to the I2C SDA Pin  pulled high using a 4.7kohm resistor connected to 5V
+ *    - pin 7 - SCL  to the I2C SCL Pin  pulled high using a 4.7kohm resistor connected to 5V
+ *
+ * Author:  Samuel Ippolito
+ * Date:	10/04/2017
+ */

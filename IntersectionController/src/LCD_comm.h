@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 #include "stdint.h"
 #include <fcntl.h>
 #include <devctl.h>
@@ -47,5 +48,9 @@ int main(int argc, char *argv[]);
 int  I2cWrite_(int *fd, uint8_t Address, uint8_t mode, uint8_t *pBuffer, uint32_t NbData);
 void SetCursor(int *fd, uint8_t LCDi2cAdd, uint8_t row, uint8_t column);
 void Initialise_LCD (int *fd, _Uint32t LCDi2cAdd);
+
 int writeLCD(int row, int col, char write[], int* file);
 int openLCD();
+
+void *LCD_Control(void* data);
+
