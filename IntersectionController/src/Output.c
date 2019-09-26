@@ -1,4 +1,4 @@
-#include "LCD_comm.h"
+#include "Output.h"
 
 /*
  * Revised I2C LCD writing.
@@ -179,7 +179,47 @@ int writeLCD(int row, int col, char write[], int* filep)
 	// write new data to I2C
 
 	printf("\nComplete\n");
+	sleep(5);
 	return EXIT_SUCCESS;
+}
+
+
+void * LCD_Control(void * data)
+{
+
+	char c[] = ".-.   ";
+	char d[] = "   '-'";
+	char a[] = "0";
+	char b[] = "0";
+	int j = 0;
+	int LCD_file;
+	int succ = openLCD(&LCD_file);
+	printf("Open Success == %d",succ);
+
+
+	while(1)
+		{
+			a[0] = c[0];
+			b[0] = d[0];
+			writeLCD(0,0,a,&LCD_file);
+			writeLCD(0,0,b,&LCD_file);
+			for (j = 1; j < 20;j++)
+			{
+				a[0] = c[j%7];
+				b[0] = d[j%7];
+				writeLCD(0,j,a,&LCD_file);
+				writeLCD(1,j,b,&LCD_file);
+				usleep(100000);
+			}
+			for (j = 1; j < 20;j++)
+			{
+				a[0] = c[j%7];
+				b[0] = d[j%7];
+				writeLCD(0,19-j,a,&LCD_file);
+				writeLCD(1,19-j,b,&LCD_file);
+				usleep(100000);
+			}
+		}
 }
 
 
