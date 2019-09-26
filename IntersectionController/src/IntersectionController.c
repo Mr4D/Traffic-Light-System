@@ -7,6 +7,8 @@
 
 #include "LCD_comm.h"
 
+int LCD_file;
+
 int main(int argc, char *argv[])
 {
 	//char c[] = ".-.   ";
@@ -15,12 +17,13 @@ int main(int argc, char *argv[])
 	//char b[] = "0";
 
 	//int j = 0;
-	int open_success = openLCD();
 
-	printf("Open Success == %d",open_success);
+	int succ = openLCD(&LCD_file);
 
-	writeLCD(0,0,"RMIT_BBB_v5_03      ");
-	writeLCD(1,0,"192.168.201.50        ");
+	printf("Open Success == %d",succ);
+
+	writeLCD(0,0,"RMIT_BBB_v5_03 cuzz   ", &LCD_file);
+	writeLCD(1,0,"192.168.201.50        ", &LCD_file);
 
 }
 //
