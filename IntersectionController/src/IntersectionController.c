@@ -15,6 +15,8 @@ int main(void) {
 
 	pthread_t traffic_state_machine;
 
+	initiliseTimer();
+
 	pthread_create(&traffic_state_machine, NULL, trafficStateMachine, NULL);
 	pthread_join(traffic_state_machine, NULL);
 
