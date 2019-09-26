@@ -38,6 +38,8 @@
 #include <unistd.h>
 #include <sys/neutrino.h>
 
+#include <traffic_types.h>
+
 #define DATA_SEND 0x40  // sets the Rs value high
 #define Co_Ctrl   0x00  // mode to tell LCD we are sending a single command
 #ifndef LCD_COMM_H_

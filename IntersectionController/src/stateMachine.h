@@ -53,8 +53,8 @@ State nextState;
 
 Mode mode;
 
-void changeTrafficState_peak();
-void changeTrafficState_offPeak();
+void changeTrafficState_peak(state_data * data);
+void changeTrafficState_offPeak(state_data * data);
 void *trafficStateMachine(void * data);
 void initiliseTimer();
 

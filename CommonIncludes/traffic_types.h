@@ -25,3 +25,15 @@ typedef enum {
     OFF_PEAK
 } Mode;
 
+typedef struct {
+
+	State currentState;
+	State previousState;
+	State nextState;
+
+	bool produce_data;
+
+	pthread_mutex_t mutex;
+	pthread_cond_t condvar;
+
+} state_data;

@@ -7,7 +7,7 @@
 
 #include "stateMachine.h"
 
-void changeTrafficState_peak() {
+void changeTrafficState_peak(state_data * data) {
 
 	struct itimerspec * itime_to_use;
 
@@ -130,11 +130,26 @@ void changeTrafficState_peak() {
 			break;
 	}
 
-	currentState = nextState;
+
+	pthread_mutex_lock(&data->mutex);
+
+	while (!data->produce_data) {
+		pthread_cond_wait(&data->condvar, &data->mutex);
+	}
+
+	data->currentState = nextState;
+
+	data->produce_data = false;
+	pthread_cond_signal(&data->condvar);
+	pthread_mutex_unlock(&data->mutex);
+
+
+
+
 	timer_settime(timer_id, 0, itime_to_use, NULL);	// and start the timer!
 }
 
-void changeTrafficState_offPeak() {
+void changeTrafficState_offPeak(state_data * data) {
 
 	switch(currentState) {
 
@@ -276,13 +291,15 @@ void initiliseTimer() {
 
 void *trafficStateMachine(void * data) {
 
+	state_data * sd = (state_data *) data;
+
 	while(1) {
 
 		if (mode == PEAK) {
-			changeTrafficState_peak();
+			changeTrafficState_peak(sd);
 		}
 		else if (mode == OFF_PEAK) {
-			changeTrafficState_peak();
+			changeTrafficState_peak(sd);
 		}
 		else {
 			printf("Encountered an error\n");

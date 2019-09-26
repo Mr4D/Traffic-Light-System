@@ -184,68 +184,27 @@ int writeLCD(int row, int col, char write[], int* filep)
 }
 
 
-void * LCD_Control(void * data)
-{
+void * LCD_Control(void * data) {
 
-	char c[] = ".-.   ";
-	char d[] = "   '-'";
-	char a[] = "0";
-	char b[] = "0";
-	int j = 0;
-	int LCD_file;
-	int succ = openLCD(&LCD_file);
-	printf("Open Success == %d",succ);
+	State outputState;
 
+	state_data * td = (state_data*) data;
 
-	while(1)
-		{
-			a[0] = c[0];
-			b[0] = d[0];
-			writeLCD(0,0,a,&LCD_file);
-			writeLCD(0,0,b,&LCD_file);
-			for (j = 1; j < 20;j++)
-			{
-				a[0] = c[j%7];
-				b[0] = d[j%7];
-				writeLCD(0,j,a,&LCD_file);
-				writeLCD(1,j,b,&LCD_file);
-				usleep(100000);
-			}
-			for (j = 1; j < 20;j++)
-			{
-				a[0] = c[j%7];
-				b[0] = d[j%7];
-				writeLCD(0,19-j,a,&LCD_file);
-				writeLCD(1,19-j,b,&LCD_file);
-				usleep(100000);
-			}
+	while (1) {
+		pthread_mutex_lock(&td->mutex);
+
+		while (td->produce_data) {
+			pthread_cond_wait(&td->condvar, &td->mutex);
 		}
+
+		outputState = td-> currentState;
+
+		td->produce_data = true;
+		pthread_cond_signal(&td->condvar);
+		pthread_mutex_unlock(&td->mutex);
+
+		printf("Output will show out for state %d\n", outputState);
+	}
+
 }
 
-
-/*
- * I2C LCD test program using BBB I2C1
- *
- * LCD data:  MIDAS  MCCOG22005A6W-FPTLWI  Alphanumeric LCD, 20 x 2, Black on White, 3V to 5V, I2C, English, Japanese, Transflective
- * LCD data sheet, see:
- *                      http://au.element14.com/midas/mccog22005a6w-fptlwi/lcd-alpha-num-20-x-2-white/dp/2425758?ost=2425758&selectedCategoryId=&categoryNameResp=All&searchView=table&iscrfnonsku=false
- *
- *  BBB P9 connections:
- *    - P9_Pin17 - SCL - I2C1	 GPIO3_2
- *    - P9_Pin18 - SDA - I2C1    GPIO3_1
- *
- *  LCD connections:
- *    - pin 1 – VOUT to the 5V     (external supply should be used)
- *    - pin 4 – VDD  to the 5V
- *    - pin 8 – RST  to the 5V
- *
- *    - pin 2 - Not connected  (If 3.3V is used then add two caps)
- *    - pin 3 - Not connected  (If 3.3V is used then add two caps)
- *
- *    - pin 5 - VSS  to Ground
- *    - pin 6 – SDA  to the I2C SDA Pin  pulled high using a 4.7kohm resistor connected to 5V
- *    - pin 7 - SCL  to the I2C SCL Pin  pulled high using a 4.7kohm resistor connected to 5V
- *
- * Author:  Samuel Ippolito
- * Date:	10/04/2017
- */

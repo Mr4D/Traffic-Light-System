@@ -9,9 +9,15 @@
 
 int main(void) {
 
-	currentState = INITIAL;
-	previousState = INITIAL;
-	nextState = INITIAL;
+	state_data sd = {
+		INITIAL,
+		INITIAL,
+		INITIAL,
+		true,
+		PTHREAD_MUTEX_INITIALIZER,
+		PTHREAD_COND_INITIALIZER
+	};
+
 
 	mode = PEAK;
 
@@ -24,8 +30,8 @@ int main(void) {
 	pthread_t t_output;
 
 	pthread_create(&t_input, NULL, &inputThread, &flags);
-	pthread_create(&traffic_state_machine, NULL, trafficStateMachine, NULL);
-	pthread_create(&t_output,NULL,LCD_Control,NULL);
+	pthread_create(&traffic_state_machine, NULL, trafficStateMachine, &sd);
+	pthread_create(&t_output,NULL,LCD_Control,&sd);
 
 	pthread_join(t_input, NULL);
 	pthread_join(traffic_state_machine, NULL);
