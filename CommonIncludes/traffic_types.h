@@ -1,5 +1,6 @@
 #pragma once
 
+
 typedef enum {
     false,
     true
@@ -23,3 +24,4 @@ typedef enum {
     PEAK,
     OFF_PEAK
 } Mode;
+

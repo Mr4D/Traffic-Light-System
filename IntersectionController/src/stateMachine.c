@@ -9,6 +9,8 @@
 
 void changeTrafficState_peak() {
 
+	struct itimerspec * itime_to_use;
+
 	printf("State: %d\n", currentState);
 
 	switch(currentState) {
@@ -17,6 +19,8 @@ void changeTrafficState_peak() {
 
 			nextState = ALL_RED;
 			previousState = INITIAL;
+
+			itime_to_use = &itime_traffic_all_red;
 
 			break;
 
@@ -37,9 +41,13 @@ void changeTrafficState_peak() {
 
 			previousState = ALL_RED;
 
+			itime_to_use = &itime_traffic_all_red;
+
 			break;
 
 		case FAULT:
+
+			itime_to_use = &itime_traffic_all_red;
 
 			break;
 
@@ -48,12 +56,16 @@ void changeTrafficState_peak() {
 			previousState = NS_S_G;
 			nextState = NS_S_Y;
 
+			itime_to_use = &itime_traffic_straight;
+
 			break;
 
 		case NS_S_Y:
 
 			previousState = NS_S_Y;
 			nextState = ALL_RED;
+
+			itime_to_use = &itime_traffic_yellow;
 
 			break;
 
@@ -62,12 +74,16 @@ void changeTrafficState_peak() {
 			previousState = EW_R_G;
 			nextState = EW_R_Y;
 
+			itime_to_use = &itime_traffic_turn;
+
 			break;
 
 		case EW_R_Y:
 
 			previousState = EW_R_Y;
 			nextState = ALL_RED;
+
+			itime_to_use = &itime_traffic_yellow;
 
 			break;
 
@@ -76,12 +92,16 @@ void changeTrafficState_peak() {
 			previousState = EW_S_G;
 			nextState = EW_S_Y;
 
+			itime_to_use = &itime_traffic_straight;
+
 			break;
 
 		case EW_S_Y:
 
 			previousState = EW_S_Y;
 			nextState = ALL_RED;
+
+			itime_to_use = &itime_traffic_yellow;
 
 			break;
 
@@ -90,6 +110,8 @@ void changeTrafficState_peak() {
 			previousState = NS_R_G;
 			nextState = NS_R_Y;
 
+			itime_to_use = &itime_traffic_turn;
+
 			break;
 
 		case NS_R_Y:
@@ -97,15 +119,19 @@ void changeTrafficState_peak() {
 			previousState = NS_R_Y;
 			nextState = ALL_RED;
 
+			itime_to_use = &itime_traffic_yellow;
+
 			break;
 
 		default:
+
+			itime_to_use = &itime_traffic_none;
 
 			break;
 	}
 
 	currentState = nextState;
-	sleep(2);
+	timer_settime(timer_id, 0, itime_to_use, NULL);	// and start the timer!
 }
 
 void changeTrafficState_offPeak() {
@@ -184,26 +210,59 @@ void initiliseTimer() {
 		event.sigev_notify = SIGEV_PULSE;
 
 		struct sched_param th_param;
-		pthread_getschedparam(pthread_self(), NULL, &th_param);
-		event.sigev_priority = th_param.sched_curpriority; // old QNX660 version getprio(0);
+		pthread_getschedparam(pthread_self(), NULL, &th_param);	// Get my own thread parameters
+		event.sigev_priority = th_param.sched_curpriority;		// Set sig with same priority as myself
 
 		event.sigev_code = MY_PULSE_CODE;
 
-		// create the timer, binding it to the event
-		if (timer_create(CLOCK_REALTIME, &event, &timer_id) == -1) {
+
+		if (timer_create(CLOCK_REALTIME, &event, &timer_id) == -1) {	// create the timer, binding it to the event
 			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
 			perror(NULL);
 			exit(EXIT_FAILURE);
 		}
 
 		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_traffic_straight.it_value.tv_sec = 1;				// 1 second
-		itime_traffic_straight.it_value.tv_nsec = 500000000;	// 500 million nsecs = .5 secs
-		itime_traffic_straight.it_interval.tv_sec = 1;			// 1 second
-		itime_traffic_straight.it_interval.tv_nsec = 500000000;	// 500 million nsecs = .5 secs
+		itime_traffic_straight.it_value.tv_sec = TIME_TRAFFIC_STRAIGHT;	// 1 second
+		itime_traffic_straight.it_value.tv_nsec = 0;					// 500 million nsecs = .5 secs
+		itime_traffic_straight.it_interval.tv_sec = 0;					// 1 second
+		itime_traffic_straight.it_interval.tv_nsec = 0;					// 500 million nsecs = .5 secs
 
-		// and start the timer!
-		timer_settime(timer_id, 0, &itime_traffic_straight, NULL);
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_traffic_turn.it_value.tv_sec = TIME_TRAFFIC_TURN;				// 1 second
+		itime_traffic_turn.it_value.tv_nsec = 0;			// 500 million nsecs = .5 secs
+		itime_traffic_turn.it_interval.tv_sec = 0;			// 1 second
+		itime_traffic_turn.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
+
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_traffic_yellow.it_value.tv_sec = TIME_TRAFFIC_YELLOW;				// 1 second
+		itime_traffic_yellow.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
+		itime_traffic_yellow.it_interval.tv_sec = 0;			// 1 second
+		itime_traffic_yellow.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
+
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_traffic_all_red.it_value.tv_sec = TIME_TRAFFIC_ALL_RED;				// 1 second
+		itime_traffic_all_red.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
+		itime_traffic_all_red.it_interval.tv_sec = 0;			// 1 second
+		itime_traffic_all_red.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
+
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_traffic_none.it_value.tv_sec = TIME_TRAFFIC_NONE;				// 1 second
+		itime_traffic_none.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
+		itime_traffic_none.it_interval.tv_sec = 0;			// 1 second
+		itime_traffic_none.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
+
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_ped_green.it_value.tv_sec = TIME_PED_GREEN;				// 1 second
+		itime_ped_green.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
+		itime_ped_green.it_interval.tv_sec = 0;			// 1 second
+		itime_ped_green.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
+
+		// setup the timer (1.5s initial delay value, 1.5s reload interval)
+		itime_ped_yellow.it_value.tv_sec = TIME_PED_YELLOW;				// 1 second
+		itime_ped_yellow.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
+		itime_ped_yellow.it_interval.tv_sec = 0;			// 1 second
+		itime_ped_yellow.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
 
 	}
 	else {
@@ -220,7 +279,6 @@ void *trafficStateMachine(void * data) {
 	while(1) {
 
 		if (mode == PEAK) {
-			rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);
 			changeTrafficState_peak();
 		}
 		else if (mode == OFF_PEAK) {
@@ -229,8 +287,9 @@ void *trafficStateMachine(void * data) {
 		else {
 			printf("Encountered an error\n");
 		}
+
+		rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);	// Wait for timer signal
 	}
 
 	return EXIT_SUCCESS;
 }
-
