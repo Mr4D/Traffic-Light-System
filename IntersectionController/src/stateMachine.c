@@ -7,151 +7,150 @@
 
 #include "stateMachine.h"
 
-void changeTrafficState_peak(state_data * data) {
+void initiliseTimer() {
 
-	struct itimerspec * itime_to_use;
+	chid = ChannelCreate(0); // Create a communications channel
 
-	printf("State: %d\n", currentState);
+	event.sigev_coid = ConnectAttach(ND_LOCAL_NODE, 0, chid, _NTO_SIDE_CHANNEL, 0);
 
-	switch(currentState) {
+	if(event.sigev_coid != -1) {
+
+		event.sigev_notify = SIGEV_PULSE;
+
+		struct sched_param th_param;
+		pthread_getschedparam(pthread_self(), NULL, &th_param);	// Get my own thread parameters
+		event.sigev_priority = th_param.sched_curpriority;		// Set sig with same priority as myself
+
+		event.sigev_code = MY_PULSE_CODE;
+
+
+		// Create State Timer
+		if (timer_create(CLOCK_REALTIME, &event, &state_timer_id) == -1) {	// create the timer, binding it to the event
+			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
+			perror(NULL);
+			exit(EXIT_FAILURE);
+		}
+
+//		// Create Pedestrian Timer
+//		if (timer_create(CLOCK_REALTIME, &event, &ped_timer_id) == -1) {	// create the timer, binding it to the event
+//			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
+//			perror(NULL);
+//			exit(EXIT_FAILURE);
+//		}
+
+		// Timer for the state transition of the traffic intersection
+		// one-shot timer (default = 0s)
+		itime_state_timer.it_value.tv_sec = 0;		// 0 second
+		itime_state_timer.it_value.tv_nsec = 0;		// 0 nano seconds
+		itime_state_timer.it_interval.tv_sec = 0;	// 0 second 		(reload)
+		itime_state_timer.it_interval.tv_nsec = 0;	// 0 nano seconds 	(reload)
+
+
+		// Timer for the pedestrian crossing at the traffic intersection
+		// one-shot timer (default = 0s)
+		itime_ped_timer.it_value.tv_sec = 0;		// 0 second
+		itime_ped_timer.it_value.tv_nsec = 0;		// 0 nano seconds
+		itime_ped_timer.it_interval.tv_sec = 0;		// 0 second 		(reload)
+		itime_ped_timer.it_interval.tv_nsec = 0;	// 0 nano seconds 	(reload)
+
+	}
+	else {
+
+		printf( (char *) stderr, "%c:  couldn't ConnectAttach to self!\n", gettid());
+		perror(NULL);
+		exit(EXIT_FAILURE);
+
+	}
+}
+
+void changeTrafficState_peak(state_data * statedata) {
+
+
+	printf("State: %d\n", statedata->currentState);
+
+	switch(statedata->currentState) {
 
 		case INITIAL:
-
-			nextState = ALL_RED;
-			previousState = INITIAL;
-
-			itime_to_use = &itime_traffic_all_red;
-
+			statedata->nextState = ALL_RED;
 			break;
 
 		case ALL_RED:
-
-			if ((previousState == INITIAL) || (previousState == NS_R_Y)) {
-				nextState = NS_S_G;
+			if ((statedata->previousState == INITIAL) || (statedata->previousState == NS_R_Y)) {
+				statedata->nextState = NS_S_G;
 			}
-			else if (previousState == NS_S_Y) {
-				nextState = EW_R_G;
+			else if (statedata->previousState == NS_S_Y) {
+				statedata->nextState = EW_R_G;
 			}
-			else if (previousState == EW_R_Y) {
-				nextState = EW_S_G;
+			else if (statedata->previousState == EW_R_Y) {
+				statedata->nextState = EW_S_G;
 			}
-			else if (previousState == EW_S_Y) {
-				nextState = NS_R_G;
+			else if (statedata->previousState == EW_S_Y) {
+				statedata->nextState = NS_R_G;
 			}
-
-			previousState = ALL_RED;
-
-			itime_to_use = &itime_traffic_all_red;
-
 			break;
 
 		case FAULT:
 
-			itime_to_use = &itime_traffic_all_red;
-
 			break;
 
 		case NS_S_G:
-
-			previousState = NS_S_G;
-			nextState = NS_S_Y;
-
-			itime_to_use = &itime_traffic_straight;
-
+			statedata->nextState = NS_S_Y;
 			break;
 
 		case NS_S_Y:
-
-			previousState = NS_S_Y;
-			nextState = ALL_RED;
-
-			itime_to_use = &itime_traffic_yellow;
-
+			statedata->nextState = ALL_RED;
 			break;
 
 		case EW_R_G:
-
-			previousState = EW_R_G;
-			nextState = EW_R_Y;
-
-			itime_to_use = &itime_traffic_turn;
-
+			statedata->nextState = EW_R_Y;
 			break;
 
 		case EW_R_Y:
-
-			previousState = EW_R_Y;
-			nextState = ALL_RED;
-
-			itime_to_use = &itime_traffic_yellow;
+			statedata->nextState = ALL_RED;
 
 			break;
 
 		case EW_S_G:
-
-			previousState = EW_S_G;
-			nextState = EW_S_Y;
-
-			itime_to_use = &itime_traffic_straight;
-
+			statedata->nextState = EW_S_Y;
 			break;
 
 		case EW_S_Y:
-
-			previousState = EW_S_Y;
-			nextState = ALL_RED;
-
-			itime_to_use = &itime_traffic_yellow;
-
+			statedata->nextState = ALL_RED;
 			break;
 
 		case NS_R_G:
-
-			previousState = NS_R_G;
-			nextState = NS_R_Y;
-
-			itime_to_use = &itime_traffic_turn;
-
+			statedata->nextState = NS_R_Y;
 			break;
 
 		case NS_R_Y:
-
-			previousState = NS_R_Y;
-			nextState = ALL_RED;
-
-			itime_to_use = &itime_traffic_yellow;
-
+			statedata->nextState = ALL_RED;
 			break;
 
 		default:
-
-			itime_to_use = &itime_traffic_none;
-
+			statedata->nextState = FAULT;
 			break;
 	}
 
 
-	pthread_mutex_lock(&data->mutex);
+//	pthread_mutex_lock(&data->mutex);
+//
+//	while (!data->produce_data) {
+//		pthread_cond_wait(&data->condvar, &data->mutex);
+//	}
 
-	while (!data->produce_data) {
-		pthread_cond_wait(&data->condvar, &data->mutex);
-	}
+	statedata->previousState = statedata->currentState;
+	statedata->currentState = statedata->nextState;
 
-	data->currentState = nextState;
-
-	data->produce_data = false;
-	pthread_cond_signal(&data->condvar);
-	pthread_mutex_unlock(&data->mutex);
+//	data->produce_data = false;
+//	pthread_cond_signal(&data->condvar);
+//	pthread_mutex_unlock(&data->mutex);
 
 
-
-
-	timer_settime(timer_id, 0, itime_to_use, NULL);	// and start the timer!
 }
 
-void changeTrafficState_offPeak(state_data * data) {
+void changeTrafficState_offPeak(state_data * statedata) {
 
-	switch(currentState) {
+	switch(statedata->currentState) {
 
 		case INITIAL:
 
@@ -214,99 +213,114 @@ void *thread_ex(void *data) {
 
 }
 
-void initiliseTimer() {
-
-	chid = ChannelCreate(0); // Create a communications channel
-
-	event.sigev_coid = ConnectAttach(ND_LOCAL_NODE, 0, chid, _NTO_SIDE_CHANNEL, 0);
-
-	if(event.sigev_coid != -1) {
-
-		event.sigev_notify = SIGEV_PULSE;
-
-		struct sched_param th_param;
-		pthread_getschedparam(pthread_self(), NULL, &th_param);	// Get my own thread parameters
-		event.sigev_priority = th_param.sched_curpriority;		// Set sig with same priority as myself
-
-		event.sigev_code = MY_PULSE_CODE;
 
 
-		if (timer_create(CLOCK_REALTIME, &event, &timer_id) == -1) {	// create the timer, binding it to the event
-			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
-			perror(NULL);
-			exit(EXIT_FAILURE);
-		}
+void updateStateTimer(State state, struct itimerspec * statetimer){
+	long duration = 0;
 
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_traffic_straight.it_value.tv_sec = TIME_TRAFFIC_STRAIGHT;	// 1 second
-		itime_traffic_straight.it_value.tv_nsec = 0;					// 500 million nsecs = .5 secs
-		itime_traffic_straight.it_interval.tv_sec = 0;					// 1 second
-		itime_traffic_straight.it_interval.tv_nsec = 0;					// 500 million nsecs = .5 secs
-
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_traffic_turn.it_value.tv_sec = TIME_TRAFFIC_TURN;				// 1 second
-		itime_traffic_turn.it_value.tv_nsec = 0;			// 500 million nsecs = .5 secs
-		itime_traffic_turn.it_interval.tv_sec = 0;			// 1 second
-		itime_traffic_turn.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
-
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_traffic_yellow.it_value.tv_sec = TIME_TRAFFIC_YELLOW;				// 1 second
-		itime_traffic_yellow.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
-		itime_traffic_yellow.it_interval.tv_sec = 0;			// 1 second
-		itime_traffic_yellow.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
-
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_traffic_all_red.it_value.tv_sec = TIME_TRAFFIC_ALL_RED;				// 1 second
-		itime_traffic_all_red.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
-		itime_traffic_all_red.it_interval.tv_sec = 0;			// 1 second
-		itime_traffic_all_red.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
-
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_traffic_none.it_value.tv_sec = TIME_TRAFFIC_NONE;				// 1 second
-		itime_traffic_none.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
-		itime_traffic_none.it_interval.tv_sec = 0;			// 1 second
-		itime_traffic_none.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
-
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_ped_green.it_value.tv_sec = TIME_PED_GREEN;				// 1 second
-		itime_ped_green.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
-		itime_ped_green.it_interval.tv_sec = 0;			// 1 second
-		itime_ped_green.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
-
-		// setup the timer (1.5s initial delay value, 1.5s reload interval)
-		itime_ped_yellow.it_value.tv_sec = TIME_PED_YELLOW;				// 1 second
-		itime_ped_yellow.it_value.tv_nsec = 0;	// 500 million nsecs = .5 secs
-		itime_ped_yellow.it_interval.tv_sec = 0;			// 1 second
-		itime_ped_yellow.it_interval.tv_nsec = 0;			// 500 million nsecs = .5 secs
-
+	if(state == INITIAL){
+		duration = TIME_TRAFFIC_INITIAL;
 	}
-	else {
-
-		printf( (char *) stderr, "%c:  couldn't ConnectAttach to self!\n", gettid());
-		perror(NULL);
-		exit(EXIT_FAILURE);
-
+	else if(state == ALL_RED){
+		duration = TIME_TRAFFIC_ALL_RED;
 	}
+	else if(state == NS_S_G || state == EW_S_G ){
+		duration = TIME_TRAFFIC_STRAIGHT;
+	}
+	else if(state == NS_R_G || state == EW_R_G ){
+		duration = TIME_TRAFFIC_TURN;
+	}
+	else if(state ==  NS_S_Y || state == NS_R_Y ||  state ==  EW_S_Y || state == EW_R_Y ){
+		duration = TIME_TRAFFIC_YELLOW;
+	}
+	else{
+		duration = TIME_TRAFFIC_NONE;
+	}
+
+	statetimer->it_value.tv_sec = duration;
 }
 
-void *trafficStateMachine(void * data) {
+void * trafficStateMachine(void * data) {
 
-	state_data * sd = (state_data *) data;
+	state_data * statedata = (state_data *) data;
 
 	while(1) {
 
 		if (mode == PEAK) {
-			changeTrafficState_peak(sd);
+			changeTrafficState_peak(statedata);
 		}
 		else if (mode == OFF_PEAK) {
-			changeTrafficState_peak(sd);
+			changeTrafficState_peak(statedata);
 		}
 		else {
 			printf("Encountered an error\n");
 		}
 
+
+		updateStateTimer(statedata->currentState, &itime_state_timer);
+
+		printState(statedata->currentState);
+		printf("Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
+
+		timer_settime(state_timer_id, 0, &itime_state_timer, NULL);	// and start the timer!
+
 		rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);	// Wait for timer signal
 	}
 
 	return EXIT_SUCCESS;
+}
+
+void printState(State state){
+
+	switch(state) {
+
+		case INITIAL:
+			printf("\tState: %d [INITIAL]\n", state);
+			break;
+
+		case ALL_RED:
+			printf("\tState: %d [ALLRED]\n", state);
+			break;
+
+		case FAULT:
+			printf("\tState: %d [FAULT]\n", state);
+			break;
+
+		case NS_S_G:
+			printf("\tState: %d [NS_S_G]\n", state);
+			break;
+
+		case NS_S_Y:
+			printf("\tState: %d [NS_S_Y]\n", state);
+			break;
+
+		case EW_R_G:
+			printf("\tState: %d [EW_R_G]\n", state);
+			break;
+
+		case EW_R_Y:
+			printf("\tState: %d [EW_R_Y]\n", state);
+			break;
+
+		case EW_S_G:
+			printf("\tState: %d [EW_S_G]\n", state);
+			break;
+
+		case EW_S_Y:
+			printf("\tState: %d [EW_S_Y]\n", state);
+			break;
+
+		case NS_R_G:
+			printf("\tState: %d [NS_R_G]\n", state);
+			break;
+
+		case NS_R_Y:
+			printf("\tState: %d [NS_R_Y]\n", state);
+			break;
+
+		default:
+
+			break;
+	}
+
 }

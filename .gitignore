@@ -56,3 +56,8 @@ dkms.conf
 
 # Project directories
 *build/
+
+# Targets
+192.168.186.128/
+192.168.186.129/
+

@@ -6,10 +6,11 @@
 #include "stateMachine.h"
 #include "Input.h"
 #include "Output.h"
+#include "IC_MessagePassing.h"
 
 int main(void) {
 
-	state_data sd = {
+	state_data statedata = {
 		INITIAL,
 		INITIAL,
 		INITIAL,
@@ -26,16 +27,21 @@ int main(void) {
 	initiliseTimer();
 
 	pthread_t traffic_state_machine;
-	pthread_t t_input;
+	//pthread_t t_input;
 	pthread_t t_output;
 
-	pthread_create(&t_input, NULL, &inputThread, &flags);
-	pthread_create(&traffic_state_machine, NULL, trafficStateMachine, &sd);
-	pthread_create(&t_output,NULL,LCD_Control,&sd);
+	// messaging threads
+	pthread_t critical_client_channel;
 
-	pthread_join(t_input, NULL);
+	//pthread_create(&t_input, NULL, &inputThread, &flags);
+	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &statedata);
+	//pthread_create(&t_output,NULL,LCD_Control,&sd);
+	//pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, NULL);
+
+	//pthread_join(t_input, NULL);
 	pthread_join(traffic_state_machine, NULL);
-	pthread_join(t_output, NULL);
+	//pthread_join(t_output, NULL);
+	//pthread_join(critical_client_channel, NULL);
 
 
 
