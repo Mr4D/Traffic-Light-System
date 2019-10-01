@@ -7,9 +7,11 @@
 #define I1_HOSTNAME "RMIT_BBB_v5_06"
 
 #define TCC_CRITICAL_CHANNEL  "s3378373_state_recieve"
+#define I1_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
 
 // QNET Channels
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
+#define I1_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" I1_HOSTNAME "/dev/name/local/" I1_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
 
 
 // Client IDs
@@ -59,7 +61,7 @@ typedef struct {
 
 typedef struct {
 
-	traffic_state_t current_state;	
+	rail_state_t current_state;	
 	
 	bool produce_data;	
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
@@ -78,6 +80,8 @@ typedef struct {
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
 } tcc_state_data_t;
+
+typedef rail_state_data_t rcc_state_data_t;
 
 typedef union {
 	
