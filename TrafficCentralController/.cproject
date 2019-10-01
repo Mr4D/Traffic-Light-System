@@ -25,9 +25,7 @@
 							<tool id="com.qnx.qcc.tool.compiler.369151296" name="QCC Compiler" superClass="com.qnx.qcc.tool.compiler">
 								<option id="com.qnx.qcc.option.compiler.optlevel.313635350" name="Optimization Level" superClass="com.qnx.qcc.option.compiler.optlevel" useByScannerDiscovery="false" value="com.qnx.qcc.option.compiler.optlevel.0" valueType="enumerated"/>
 								<option id="com.qnx.qcc.option.compiler.includePath.1694369200" name="Include Directories (-I)" superClass="com.qnx.qcc.option.compiler.includePath" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/CommonIncludes}&quot;"/>
 									<listOptionValue builtIn="false" value="../../CommonIncludes"/>
-									<listOptionValue builtIn="false" value="&quot;C:\QnxWorkspace\Traffic-Light-System\CommonIncludes&quot;"/>
 								</option>
 								<inputType id="com.qnx.qcc.inputType.compiler.1856654395" superClass="com.qnx.qcc.inputType.compiler"/>
 							</tool>
@@ -201,7 +199,7 @@
 							<tool id="com.qnx.qcc.tool.compiler.506763690" name="QCC Compiler" superClass="com.qnx.qcc.tool.compiler">
 								<option id="com.qnx.qcc.option.compiler.optlevel.1812459917" name="Optimization Level" superClass="com.qnx.qcc.option.compiler.optlevel" useByScannerDiscovery="false" value="com.qnx.qcc.option.compiler.optlevel.0" valueType="enumerated"/>
 								<option id="com.qnx.qcc.option.compiler.includePath.1905713683" name="Include Directories (-I)" superClass="com.qnx.qcc.option.compiler.includePath" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;../..\CommonIncludes&quot;"/>
+									<listOptionValue builtIn="false" value="../../CommonIncludes"/>
 								</option>
 								<inputType id="com.qnx.qcc.inputType.compiler.2134319693" superClass="com.qnx.qcc.inputType.compiler"/>
 							</tool>

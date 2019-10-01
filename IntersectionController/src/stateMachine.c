@@ -63,29 +63,33 @@ void initiliseTimer() {
 	}
 }
 
-void changeTrafficState_peak(state_data * statedata) {
+void changeTrafficState_peak(traffic_state_data_t * state_data) {
 
+	pthread_mutex_lock(&state_data->mutex_state);
 
-	printf("State: %d\n", statedata->currentState);
+	while (!state_data->produce_data){
+		pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
+	}
+	//printf("State: %d\n", state_data->current_state);
 
-	switch(statedata->currentState) {
+	switch(state_data->current_state) {
 
 		case INITIAL:
-			statedata->nextState = ALL_RED;
+			state_data->next_state = ALL_RED;
 			break;
 
 		case ALL_RED:
-			if ((statedata->previousState == INITIAL) || (statedata->previousState == NS_R_Y)) {
-				statedata->nextState = NS_S_G;
+			if ((state_data->previous_state == INITIAL) || (state_data->previous_state == NS_R_Y)) {
+				state_data->next_state = NS_S_G;
 			}
-			else if (statedata->previousState == NS_S_Y) {
-				statedata->nextState = EW_R_G;
+			else if (state_data->previous_state == NS_S_Y) {
+				state_data->next_state = EW_R_G;
 			}
-			else if (statedata->previousState == EW_R_Y) {
-				statedata->nextState = EW_S_G;
+			else if (state_data->previous_state == EW_R_Y) {
+				state_data->next_state = EW_S_G;
 			}
-			else if (statedata->previousState == EW_S_Y) {
-				statedata->nextState = NS_R_G;
+			else if (state_data->previous_state == EW_S_Y) {
+				state_data->next_state = NS_R_G;
 			}
 			break;
 
@@ -94,40 +98,40 @@ void changeTrafficState_peak(state_data * statedata) {
 			break;
 
 		case NS_S_G:
-			statedata->nextState = NS_S_Y;
+			state_data->next_state = NS_S_Y;
 			break;
 
 		case NS_S_Y:
-			statedata->nextState = ALL_RED;
+			state_data->next_state = ALL_RED;
 			break;
 
 		case EW_R_G:
-			statedata->nextState = EW_R_Y;
+			state_data->next_state = EW_R_Y;
 			break;
 
 		case EW_R_Y:
-			statedata->nextState = ALL_RED;
+			state_data->next_state = ALL_RED;
 
 			break;
 
 		case EW_S_G:
-			statedata->nextState = EW_S_Y;
+			state_data->next_state = EW_S_Y;
 			break;
 
 		case EW_S_Y:
-			statedata->nextState = ALL_RED;
+			state_data->next_state = ALL_RED;
 			break;
 
 		case NS_R_G:
-			statedata->nextState = NS_R_Y;
+			state_data->next_state = NS_R_Y;
 			break;
 
 		case NS_R_Y:
-			statedata->nextState = ALL_RED;
+			state_data->next_state = ALL_RED;
 			break;
 
 		default:
-			statedata->nextState = FAULT;
+			state_data->next_state = FAULT;
 			break;
 	}
 
@@ -138,19 +142,19 @@ void changeTrafficState_peak(state_data * statedata) {
 //		pthread_cond_wait(&data->condvar, &data->mutex);
 //	}
 
-	statedata->previousState = statedata->currentState;
-	statedata->currentState = statedata->nextState;
+	state_data->previous_state = state_data->current_state;
+	state_data->current_state = state_data->next_state;
 
-//	data->produce_data = false;
-//	pthread_cond_signal(&data->condvar);
-//	pthread_mutex_unlock(&data->mutex);
-
+	state_data->produce_data = false;
+	pthread_cond_signal(&state_data->cond_state_changed);
+	pthread_mutex_unlock(&state_data->mutex_state);
+	printf("data produced\n");
 
 }
 
-void changeTrafficState_offPeak(state_data * statedata) {
+void changeTrafficState_offPeak(traffic_state_data_t * state_data) {
 
-	switch(statedata->currentState) {
+	switch(state_data->current_state) {
 
 		case INITIAL:
 
@@ -215,7 +219,7 @@ void *thread_ex(void *data) {
 
 
 
-void updateStateTimer(State state, struct itimerspec * statetimer){
+void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer){
 	long duration = 0;
 
 	if(state == INITIAL){
@@ -242,24 +246,24 @@ void updateStateTimer(State state, struct itimerspec * statetimer){
 
 void * trafficStateMachine(void * data) {
 
-	state_data * statedata = (state_data *) data;
+	traffic_state_data_t * state_data = (traffic_state_data_t *) data;
 
 	while(1) {
 
 		if (mode == PEAK) {
-			changeTrafficState_peak(statedata);
+			changeTrafficState_peak(state_data);
 		}
 		else if (mode == OFF_PEAK) {
-			changeTrafficState_peak(statedata);
+			changeTrafficState_peak(state_data);
 		}
 		else {
 			printf("Encountered an error\n");
 		}
 
 
-		updateStateTimer(statedata->currentState, &itime_state_timer);
+		updateStateTimer(state_data->current_state, &itime_state_timer);
 
-		printState(statedata->currentState);
+		printState(state_data->current_state);
 		printf("Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
 
 		timer_settime(state_timer_id, 0, &itime_state_timer, NULL);	// and start the timer!
@@ -270,7 +274,7 @@ void * trafficStateMachine(void * data) {
 	return EXIT_SUCCESS;
 }
 
-void printState(State state){
+void printState(traffic_state_t state){
 
 	switch(state) {
 

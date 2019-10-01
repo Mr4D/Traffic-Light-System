@@ -9,31 +9,25 @@ void * noncritical_client_channel_thread(void * data){
 void * critical_server_channel_thread(void * data){
 
 	printf("critical_server_channel()\n");
-	int chid;
-	pid_t pid;
+	name_attach_t * attach;
 
-	pid = getpid();
 	// Create a local name (/dev/name/...)
-
-	printf("createChannel()\n");
-	if ((chid = ChannelCreate(0)) == -1)
+	if ((attach = name_attach(NULL, TCC_CRITICAL_CHANNEL, 0)) == NULL)
 	{
-	   printf("\nFailed to create channel\n");
-	   pthread_exit(0);
+	   printf("\nFailed to name_attach on ATTACH_POINT: %s \n", TCC_CRITICAL_CHANNEL);
+	   printf("\n Possibly another server with the same name is already running !\n");
+	   return EXIT_FAILURE;
 	}
 
-	printf("writeServerInfo()\n");
-	writeServerInfo(TCC_CRITICAL_SERVER_INFO, pid, chid);
-
-	printf("Server Process ID :  %d\n", pid);
-	printf("Server Channel ID :  %d\n", chid);
+	printf("Server Listening for Clients on ATTACH_POINT: %s \n", TCC_CRITICAL_CHANNEL);
 
 
-	my_data msg;
-	int rcvid=0, msgnum=0;  		// no message received yet
+
+	msg_data_t msg;
+	int rcvid=0;
 	int Stay_alive=0, living=0;	// server stays running (ignores _PULSE_CODE_DISCONNECT request)
 
-	my_reply replymsg; // replymsg structure for sending back to client
+	msg_reply_t replymsg; // replymsg structure for sending back to client
 	replymsg.hdr.type = 0x01;
 	replymsg.hdr.subtype = 0x00;
 
@@ -41,7 +35,7 @@ void * critical_server_channel_thread(void * data){
 	while (living)
 	{
 	// Do your MsgReceive's here now with the chid
-	  rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);
+	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
 	  if (rcvid == -1)  // Error condition, exit
 	  {
@@ -61,33 +55,33 @@ void * critical_server_channel_thread(void * data){
 			   if( Stay_alive == 0)
 			   {
 				   ConnectDetach(msg.hdr.scoid);
-				   printf("\nServer was told to Detach from ClientID:%d ...\n", msg.ClientID);
+				   printf("\nServer was told to Detach from ClientID:%d ...\n", msg.client_id);
 				   living = 0; // kill while loop
 				   continue;
 			   }
 			   else
 			   {
-				   printf("\nServer received Detach pulse from ClientID:%d but rejected it ...\n", msg.ClientID);
+				   printf("\nServer received Detach pulse from ClientID:%d but rejected it ...\n", msg.client_id);
 			   }
 			   break;
 
 		   case _PULSE_CODE_UNBLOCK:
 				// REPLY blocked client wants to unblock (was hit by a signal
 				// or timed out).  It's up to you if you reply now or later.
-			   printf("\nServer got _PULSE_CODE_UNBLOCK after %d, msgnum\n", msgnum);
+			   printf("\nServer got _PULSE_CODE_UNBLOCK\n");
 			   break;
 
 		   case _PULSE_CODE_COIDDEATH:  // from the kernel
-			   printf("\nServer got _PULSE_CODE_COIDDEATH after %d, msgnum\n", msgnum);
+			   printf("\nServer got _PULSE_CODE_COIDDEATH\n");
 			   break;
 
 		   case _PULSE_CODE_THREADDEATH: // from the kernel
-			   printf("\nServer got _PULSE_CODE_THREADDEATH after %d, msgnum\n", msgnum);
+			   printf("\nServer got _PULSE_CODE_THREADDEATH\n");
 			   break;
 
 		   default:
 			   // Some other pulse sent by one of your processes or the kernel
-			   printf("\nServer got some other pulse after %d, msgnum\n", msgnum);
+			   printf("\nServer got some other pulse\n");
 			   break;
 
 		  }
@@ -97,7 +91,6 @@ void * critical_server_channel_thread(void * data){
 	  // for messages:
 	  if(rcvid > 0) // if true then A message was received
 	  {
-	   msgnum++;
 
 	   // If the Global Name Service (gns) is running, name_open() sends a connect message. The server must EOK it.
 	   if (msg.hdr.type == _IO_CONNECT )
@@ -118,8 +111,8 @@ void * critical_server_channel_thread(void * data){
 	   // A message (presumably ours) received
 
 	   // put your message handling code here and assemble a reply message
-	   sprintf(replymsg.buf, "Message %d received", msgnum);
-	   printf("Server received data packet with value of '%d' from client (ID:%d), ", msg.data, msg.ClientID);
+	   sprintf(replymsg.buf,"OK");
+	   printf("Server received data packet with value of '%d' from client (ID:%d), ", msg.state.traffic_state, msg.client_id);
 		   fflush(stdout);
 		   sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
@@ -134,39 +127,7 @@ void * critical_server_channel_thread(void * data){
 	}
 
 	// Remove the attach point name from the file system (i.e. /dev/name/local/<myname>)
-	ChannelDestroy(chid);
+	ChannelDestroy(attach->chid);
 
 }
 
-void writeServerInfo(const char * filename, pid_t pid, int chid){
-
-	FILE * serverInfoFile;
-	serverInfoFile = fopen( filename, "w+");
-
-	char s_pid[20]; // 10 digits plus newline and null = 12 digits, choose 20 to be safe;
-	char s_chid[20]; // 10 digits plus newline and null = 12 digits, choose 20 to be safe;
-
-	sprintf(s_pid, "%d\n", pid);
-	sprintf(s_chid, "%d\n", chid);
-
-	fputs( s_pid, serverInfoFile );
-	fputs( s_chid, serverInfoFile );
-
-	fclose(serverInfoFile);
-}
-
-void readServerInfo(const char * filename, pid_t * pid, int * chid){
-	FILE * serverInfoFile;
-	serverInfoFile = fopen( filename, "r");
-
-	char s_pid[20]; // 10 digits plus newline and null = 12 digits, choose 20 to be safe;
-	char s_chid[20]; // 10 digits plus newline and null = 12 digits, choose 20 to be safe;
-
-	fgets( s_pid, 20, serverInfoFile );
-	fgets( s_chid, 20, serverInfoFile );
-
-	*pid = atoi(s_pid);
-	*chid = atoi(s_chid);
-
-	fclose(serverInfoFile);
-}

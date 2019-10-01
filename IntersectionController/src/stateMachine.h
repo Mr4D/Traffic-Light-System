@@ -44,14 +44,14 @@ int val;
 
 my_message_t msg;
 
-Mode mode;
+traffic_mode_t mode;
 
 void initiliseTimer();
-void changeTrafficState_peak(state_data * statedata);
-void changeTrafficState_offPeak(state_data * statedata);
-void updateStateTimer(State state, struct itimerspec * statetimer);
+void changeTrafficState_peak(traffic_state_data_t * statedata);
+void changeTrafficState_offPeak(traffic_state_data_t * statedata);
+void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer);
 void * trafficStateMachine(void * data);
 
 
-void printState(State state);
+void printState(traffic_state_t state);
 

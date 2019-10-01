@@ -186,24 +186,16 @@ int writeLCD(int row, int col, char write[], int* filep)
 
 void * LCD_Control(void * data) {
 
-	State outputState;
+	traffic_state_t output_state;
 
-	state_data * td = (state_data*) data;
+	traffic_state_data_t * td = (traffic_state_data_t*) data;
 
 	while (1) {
-		pthread_mutex_lock(&td->mutex);
 
-		while (td->produce_data) {
-			pthread_cond_wait(&td->condvar, &td->mutex);
-		}
+		output_state = td-> current_state;
 
-		outputState = td-> currentState;
 
-		td->produce_data = true;
-		pthread_cond_signal(&td->condvar);
-		pthread_mutex_unlock(&td->mutex);
-
-		printf("Output will show out for state %d\n", outputState);
+		printf("Output will show out for state %d\n", output_state);
 	}
 
 }
