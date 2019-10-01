@@ -57,7 +57,8 @@ dkms.conf
 # Project directories
 *build/
 
-# Targets
+# VM Targets
 192.168.186.128/
 192.168.186.129/
-
+192.168.61.128/
+192.168.116.128/
