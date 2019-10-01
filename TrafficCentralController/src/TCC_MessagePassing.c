@@ -1,12 +1,14 @@
 #include "TCC_MessagePassing.h"
 
-void * critical_client_channel_thread(void * data){
-
-}
-void * noncritical_client_channel_thread(void * data){
-
-}
+//void * critical_client_channel_thread(void * data){
+//
+//}
+//void * noncritical_client_channel_thread(void * data){
+//
+//}
 void * critical_server_channel_thread(void * data){
+
+	tcc_state_data_t * tcc_state_data = (tcc_state_data_t*) data;
 
 	printf("critical_server_channel()\n");
 	name_attach_t * attach;
@@ -25,7 +27,7 @@ void * critical_server_channel_thread(void * data){
 
 	msg_data_t msg;
 	int rcvid=0;
-	int Stay_alive=0, living=0;	// server stays running (ignores _PULSE_CODE_DISCONNECT request)
+	int Stay_alive=1, living=0;	// server stays running (ignores _PULSE_CODE_DISCONNECT request)
 
 	msg_reply_t replymsg; // replymsg structure for sending back to client
 	replymsg.hdr.type = 0x01;
@@ -111,11 +113,38 @@ void * critical_server_channel_thread(void * data){
 	   // A message (presumably ours) received
 
 	   // put your message handling code here and assemble a reply message
-	   sprintf(replymsg.buf,"OK");
+
 	   printf("Server received data packet with value of '%d' from client (ID:%d), ", msg.state.traffic_state, msg.client_id);
 		   fflush(stdout);
-		   sleep(1); // Delay the reply by a second (just for demonstration purposes)
+		   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
+		pthread_mutex_lock(&tcc_state_data->mutex_state);
+
+		while (!tcc_state_data->produce_data){
+		pthread_cond_wait(&tcc_state_data->cond_state_changed, &tcc_state_data->mutex_state);
+		}
+
+	   if(msg.client_id == I1_CLIENT_ID){
+
+		   tcc_state_data->i1_state = msg.state.traffic_state;
+	   }
+
+	   else if(msg.client_id == I2_CLIENT_ID){
+
+		   tcc_state_data->i2_state = msg.state.traffic_state;
+	   }
+
+	   else if(msg.client_id == X1_CLIENT_ID){
+
+		   tcc_state_data->x1_state = msg.state.rail_state;
+	   }
+
+	   tcc_state_data->produce_data = false;
+	   pthread_cond_signal(&tcc_state_data->cond_state_changed);
+	   pthread_mutex_unlock(&tcc_state_data->mutex_state);
+	   printf("data produced\n");
+
+	   sprintf(replymsg.buf,"OK");
 	   printf("\n    -----> replying with: '%s'\n",replymsg.buf);
 	   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
 	  }

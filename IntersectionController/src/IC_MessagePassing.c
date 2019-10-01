@@ -7,7 +7,7 @@ void * critical_client_channel_thread(void * data){
     msg_data_t msg;
     msg_reply_t reply;
 
-    msg.client_id = I1_CLIENT_ID; // unique number for this client (optional)
+    msg.client_id = I2_CLIENT_ID; // unique number for this client (optional)
 
 	int server_coid;
 	int index = 0;

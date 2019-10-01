@@ -63,7 +63,9 @@ void initiliseTimer() {
 	}
 }
 
-void changeTrafficState_peak(traffic_state_data_t * state_data) {
+void changeTrafficState_peak(traffic_state_data_t * state_data, traffic_state_t * previous_state) {
+
+	traffic_state_t next_state = INITIAL;
 
 	pthread_mutex_lock(&state_data->mutex_state);
 
@@ -75,21 +77,21 @@ void changeTrafficState_peak(traffic_state_data_t * state_data) {
 	switch(state_data->current_state) {
 
 		case INITIAL:
-			state_data->next_state = ALL_RED;
+			next_state = ALL_RED;
 			break;
 
 		case ALL_RED:
-			if ((state_data->previous_state == INITIAL) || (state_data->previous_state == NS_R_Y)) {
-				state_data->next_state = NS_S_G;
+			if ((*previous_state == INITIAL) || (*previous_state == NS_R_Y)) {
+				next_state = NS_S_G;
 			}
-			else if (state_data->previous_state == NS_S_Y) {
-				state_data->next_state = EW_R_G;
+			else if (*previous_state == NS_S_Y) {
+				next_state = EW_R_G;
 			}
-			else if (state_data->previous_state == EW_R_Y) {
-				state_data->next_state = EW_S_G;
+			else if (*previous_state == EW_R_Y) {
+				next_state = EW_S_G;
 			}
-			else if (state_data->previous_state == EW_S_Y) {
-				state_data->next_state = NS_R_G;
+			else if (*previous_state == EW_S_Y) {
+				next_state = NS_R_G;
 			}
 			break;
 
@@ -98,52 +100,45 @@ void changeTrafficState_peak(traffic_state_data_t * state_data) {
 			break;
 
 		case NS_S_G:
-			state_data->next_state = NS_S_Y;
+			next_state = NS_S_Y;
 			break;
 
 		case NS_S_Y:
-			state_data->next_state = ALL_RED;
+			next_state = ALL_RED;
 			break;
 
 		case EW_R_G:
-			state_data->next_state = EW_R_Y;
+			next_state = EW_R_Y;
 			break;
 
 		case EW_R_Y:
-			state_data->next_state = ALL_RED;
-
+			next_state = ALL_RED;
 			break;
 
 		case EW_S_G:
-			state_data->next_state = EW_S_Y;
+			next_state = EW_S_Y;
 			break;
 
 		case EW_S_Y:
-			state_data->next_state = ALL_RED;
+			next_state = ALL_RED;
 			break;
 
 		case NS_R_G:
-			state_data->next_state = NS_R_Y;
+			next_state = NS_R_Y;
 			break;
 
 		case NS_R_Y:
-			state_data->next_state = ALL_RED;
+			next_state = ALL_RED;
 			break;
 
 		default:
-			state_data->next_state = FAULT;
+			next_state = FAULT;
 			break;
 	}
 
 
-//	pthread_mutex_lock(&data->mutex);
-//
-//	while (!data->produce_data) {
-//		pthread_cond_wait(&data->condvar, &data->mutex);
-//	}
-
-	state_data->previous_state = state_data->current_state;
-	state_data->current_state = state_data->next_state;
+	*previous_state = state_data->current_state;
+	state_data->current_state = next_state;
 
 	state_data->produce_data = false;
 	pthread_cond_signal(&state_data->cond_state_changed);
@@ -152,7 +147,7 @@ void changeTrafficState_peak(traffic_state_data_t * state_data) {
 
 }
 
-void changeTrafficState_offPeak(traffic_state_data_t * state_data) {
+void changeTrafficState_offPeak(traffic_state_data_t * state_data, traffic_state_t * previous_state) {
 
 	switch(state_data->current_state) {
 
@@ -246,15 +241,17 @@ void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer){
 
 void * trafficStateMachine(void * data) {
 
+	traffic_state_t previous_state = INITIAL;
+
 	traffic_state_data_t * state_data = (traffic_state_data_t *) data;
 
 	while(1) {
 
 		if (mode == PEAK) {
-			changeTrafficState_peak(state_data);
+			changeTrafficState_peak(state_data, &previous_state);
 		}
 		else if (mode == OFF_PEAK) {
-			changeTrafficState_peak(state_data);
+			changeTrafficState_peak(state_data, &previous_state);
 		}
 		else {
 			printf("Encountered an error\n");

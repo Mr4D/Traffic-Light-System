@@ -12,8 +12,6 @@ int main(void) {
 
 	traffic_state_data_t state_data = {
 		INITIAL,
-		INITIAL,
-		INITIAL,
 		true,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER

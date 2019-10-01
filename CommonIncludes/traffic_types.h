@@ -49,10 +49,6 @@ typedef enum {
 } traffic_mode_t;
 
 typedef struct {
-
-	traffic_state_t previous_state;
-	traffic_state_t next_state;
-
 	traffic_state_t current_state;
 	
 	bool produce_data;	
@@ -63,13 +59,25 @@ typedef struct {
 
 typedef struct {
 
-	traffic_state_t currentState;	
+	traffic_state_t current_state;	
 	
 	bool produce_data;	
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
 } rail_state_data_t;
+
+typedef struct {
+
+	traffic_state_t i1_state;	
+	traffic_state_t i2_state;
+	rail_state_t x1_state;
+	
+	bool produce_data;	
+	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+
+} tcc_state_data_t;
 
 typedef union {
 	
