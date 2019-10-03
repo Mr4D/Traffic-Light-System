@@ -4,7 +4,9 @@
 
 
 #define TCC_HOSTNAME "RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
-#define I1_HOSTNAME "RMIT_BBB_v5_06"
+#define I1_HOSTNAME "RMIT_BBB_v5_02"
+#define RCC_HOSTNAME "RMIT_BBB_v5_06"
+
 
 #define TCC_CRITICAL_CHANNEL  "s3378373_state_recieve"
 #define I1_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"

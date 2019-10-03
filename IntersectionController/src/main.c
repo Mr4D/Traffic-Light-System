@@ -10,12 +10,20 @@
 
 int main(void) {
 
-	traffic_state_data_t state_data = {
+	traffic_state_data_t traffic_state_data = {
 		INITIAL,
 		true,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
 	};
+
+	rail_state_data_t rail_state_data = {
+		NO_TRAIN,
+		true,
+		PTHREAD_MUTEX_INITIALIZER,
+		PTHREAD_COND_INITIALIZER
+	};
+
 
 
 	mode = PEAK;
@@ -30,16 +38,20 @@ int main(void) {
 
 	// messaging threads
 	pthread_t critical_client_channel;
+	pthread_t critical_server_channel;
 
 	//pthread_create(&t_input, NULL, &inputThread, &flags);
-	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &state_data);
+	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &traffic_state_data);
 	//pthread_create(&t_output,NULL,LCD_Control,&sd);
-	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &state_data);
+	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
+
+	pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
 
 	//pthread_join(t_input, NULL);
 	pthread_join(traffic_state_machine, NULL);
 	//pthread_join(t_output, NULL);
 	pthread_join(critical_client_channel, NULL);
+	pthread_join(critical_server_channel, NULL);
 
 
 

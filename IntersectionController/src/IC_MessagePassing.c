@@ -9,15 +9,21 @@ void * critical_client_channel_thread(void * data){
 
     msg.client_id = I1_CLIENT_ID; // unique number for this client (optional)
 
-	int server_coid;
-	int index = 0;
+	int server_coid = -1;
 
-	printf("  ---> Trying to connect to server named: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
-	if ((server_coid = name_open(TCC_CRITICAL_CHANNEL_ATTACH_POINT, 0)) == -1)
-	{
-		printf("\n    ERROR, could not connect to server!\n\n");
-		return EXIT_FAILURE;
+
+	while (server_coid == -1) {
+		printf("  ---> Trying to connect to server named: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
+		if ((server_coid = name_open(TCC_CRITICAL_CHANNEL_ATTACH_POINT, 0)) == -1) {
+			printf("\n    ERROR, could not connect to server!\n\n");
+//			return EXIT_FAILURE;
+		}
+		sleep(3);
 	}
+
+
+
+
 
 	printf("Connection established to: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
 
@@ -55,15 +61,14 @@ void * critical_client_channel_thread(void * data){
 
 	ConnectDetach(server_coid);
 }
-void * critical_server_channel_thread(void * data){
+void * critical_server_channel_thread(void * data) {
 	rail_state_data_t * state_data = (rail_state_data_t*) data;
 
 	printf("critical_server_channel()\n");
 	name_attach_t * attach;
 
 	// Create a local name (/dev/name/...)
-	if ((attach = name_attach(NULL, I1_CRITICAL_CHANNEL, 0)) == NULL)
-	{
+	if ((attach = name_attach(NULL, I1_CRITICAL_CHANNEL, 0)) == NULL) {
 	   printf("\nFailed to name_attach on ATTACH_POINT: %s \n", I1_CRITICAL_CHANNEL);
 	   printf("\n Possibly another server with the same name is already running !\n");
 	   return EXIT_FAILURE;
@@ -82,8 +87,7 @@ void * critical_server_channel_thread(void * data){
 	replymsg.hdr.subtype = 0x00;
 
 	living =1;
-	while (living)
-	{
+	while (living) {
 	// Do your MsgReceive's here now with the chid
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
