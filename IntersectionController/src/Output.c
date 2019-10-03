@@ -152,8 +152,7 @@ int openLCD(int *filep)
 	// Open I2C resource and set it up
 	if ((*filep = open("/dev/i2c1",O_RDWR)) < 0)  // OPEN I2C1
 		error = -1;
-	else
-		error = -1;
+
 
 	error = devctl(*filep,DCMD_I2C_SET_BUS_SPEED,&(speed),sizeof(speed),NULL);  // Set Bus speed
 	if (error)
@@ -186,7 +185,7 @@ int writeLCD(int row, int col, char write[], int* filep)
 	volatile uint8_t LCDi2cAdd = 0x3C;
 	// write some Text to the LCD screen
 
-	size_t n = sizeof(write)/sizeof(write[0]);
+	size_t n = strlen(write);
 	uint8_t	LCDdata[n];
 	strcpy(LCDdata,write);
 
@@ -211,10 +210,11 @@ void * LCD_Control(void * data){
 	double BBB_time_used;
 
 	int error;
-	int *filep;
+	int file;
+	int * filep = &file;
 	char L1[21] = {'N', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_', 'E', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_'};
 	char L2[21] = {'S',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_','W',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_'};
-
+	char buffer[2];
 	traffic_state_t trafficOutputState;
 	rail_state_t	railOutputState;
 	ped_state_t		pedOutputState;
@@ -234,7 +234,8 @@ void * LCD_Control(void * data){
 
 	trafficOutputState = INITIAL;
 	railOutputState = NO_TRAIN;
-	while (1) {
+	while (1)
+	{
 		/* pthread_mutex_lock(&td->mutex_state);
 
 		while (td->produce_data) {
@@ -249,13 +250,15 @@ void * LCD_Control(void * data){
 		pthread_cond_signal(&td->cond_state_changed);
 		pthread_mutex_unlock(&td->mutex_state);*/
 
-		start = clock();
+
 
 		switch(trafficOutputState)
 		{
 		case INITIAL:
 			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			start = clock();
 			writeLCD(0,0,L1,filep);
+			end = clock();
 			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
 			writeLCD(1,0,L2,filep);
 			break;
@@ -353,53 +356,53 @@ void * LCD_Control(void * data){
 			writeLCD(1,0,L2,filep);
 			break;
 		}
-		end = clock();
+
 
 		switch(pedOutputState)
 		{
 		case ALL_RED_P:
-			L1[9] = 'R';
-			writeLCD(0,9,L1[9],filep);
-			L2[9] = 'R';
-			writeLCD(1,9,L2[9],filep);
-			L1[19] = 'R';
-			writeLCD(0,19,L1[19],filep);
-			L2[19] = 'R';
-			writeLCD(1,19,L2[19],filep);
+			L1[9] = 'R'; buffer[0] = L1[9];
+			writeLCD(0,9,buffer,filep);
+			L2[9] = 'R';buffer[0] = L2[9];
+			writeLCD(1,9,buffer,filep);
+			L1[19] = 'R';buffer[0] = L1[19];
+			writeLCD(0,19,buffer,filep);
+			L2[19] = 'R'; buffer[0] = L2[19];
+			writeLCD(1,19,buffer,filep);
 			break;
 		case NS_P_G:
-			L1[9] = 'G';
-			writeLCD(0,9,L1[9],filep);
-			L2[9] = 'G';
-			writeLCD(1,9,L2[9],filep);
+			L1[9] = 'G'; buffer[0] = L1[9];
+			writeLCD(0,9,buffer,filep);
+			L2[9] = 'G';buffer[0] = L2[9];
+			writeLCD(1,9,buffer,filep);
 			break;
 		case NS_P_Y:
-			L1[9] = 'Y';
-			writeLCD(0,9,L1[9],filep);
-			L2[9] = 'Y';
-			writeLCD(1,9,L2[9],filep);
+			L1[9] = 'Y'; buffer[0] = L1[9];
+			writeLCD(0,9,buffer,filep);
+			L2[9] = 'Y';buffer[0] = L2[9];
+			writeLCD(1,9,buffer,filep);
 			break;
 		case EW_P_G:
-			L1[19] = 'G';
-			writeLCD(0,19,L1[19],filep);
-			L2[19] = 'G';
+			L1[19] = 'G';buffer[0] = L1[19];
+			writeLCD(0,19,buffer,filep);
+			L2[19] = 'G'; buffer[0] = L2[19];
 			writeLCD(1,19,L2[19],filep);
 			break;
 		case EW_P_Y:
-			L1[19] = 'Y';
-			writeLCD(0,19,L1[19],filep);
-			L2[19] = 'Y';
+			L1[19] = 'Y';buffer[0] = L1[19];
+			writeLCD(0,19,buffer,filep);
+			L2[19] = 'Y'; buffer[0] = L2[19];
 			writeLCD(1,19,L2[19],filep);
 			break;
 		default:
-			L1[9] = 'R';
-			writeLCD(0,9,L1[9],filep);
-			L2[9] = 'R';
-			writeLCD(1,9,L2[9],filep);
-			L1[19] = 'R';
-			writeLCD(0,19,L1[19],filep);
-			L2[19] = 'R';
-			writeLCD(1,19,L2[19],filep);
+			L1[9] = 'R'; buffer[0] = L1[9];
+			writeLCD(0,9,buffer,filep);
+			L2[9] = 'R';buffer[0] = L2[9];
+			writeLCD(1,9,buffer,filep);
+			L1[19] = 'R';buffer[0] = L1[19];
+			writeLCD(0,19,buffer,filep);
+			L2[19] = 'R'; buffer[0] = L2[19];
+			writeLCD(1,19,buffer,filep);
 			break;
 		}
 
@@ -407,3 +410,4 @@ void * LCD_Control(void * data){
 		BBB_time_used =  ((double) (end - start)) / CLOCKS_PER_SEC;
 		printf("Time Taken: %f\n", BBB_time_used);
 	}
+}
