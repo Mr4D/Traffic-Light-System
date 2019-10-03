@@ -170,19 +170,19 @@ void * critical_server_channel_thread(void * data) {
 		   fflush(stdout);
 		   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
-		pthread_mutex_lock(&state_data->mutex_state);
-
-		while (!state_data->produce_data){
-			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
-		}
+//		pthread_mutex_lock(&state_data->mutex_state);
+//
+//		while (!state_data->produce_data){
+//			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
+//		}
 
 		state_data->current_state = msg.state.rail_state;
 
 
-		state_data->produce_data = false;
-	   pthread_cond_signal(&state_data->cond_state_changed);
-	   pthread_mutex_unlock(&state_data->mutex_state);
-	   printf("data produced\n");
+//		state_data->produce_data = false;
+//	   pthread_cond_signal(&state_data->cond_state_changed);
+//	   pthread_mutex_unlock(&state_data->mutex_state);
+//	   printf("data produced\n");
 
 	   sprintf(replymsg.buf,"OK");
 	   printf("\n    -----> replying with: '%s'\n",replymsg.buf);

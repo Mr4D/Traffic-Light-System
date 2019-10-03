@@ -1,7 +1,7 @@
 #include "TCC_MessagePassing.h"
 
 void * critical_client_channel_thread(void * data){
-	traffic_state_data_t * state_data = (traffic_state_data_t *) data;
+	tcc_state_data_t * state_data = (tcc_state_data_t *) data;
 
 	msg_data_t msg_rail_state;
 	msg_reply_t reply_i1;
@@ -45,7 +45,7 @@ void * critical_client_channel_thread(void * data){
 			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
 		}
 
-		msg_rail_state.state.traffic_state = state_data->current_state;
+		msg_rail_state.state.traffic_state = state_data->x1_state;
 
 		state_data->produce_data = true;
 		pthread_cond_signal(&state_data->cond_state_changed);

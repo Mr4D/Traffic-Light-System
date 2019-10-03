@@ -2,9 +2,8 @@
 
 #define BUF_SIZE 100
 
-
-#define TCC_HOSTNAME "RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define I1_HOSTNAME "RMIT_BBB_v5_02"
+#define TCC_HOSTNAME "RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
 
 
@@ -46,6 +45,14 @@ typedef enum {
 	TRAIN,
 	NO_TRAIN
 } rail_state_t;
+
+typedef enum {
+	ALL_RED_P,
+	NS_P_G,
+	NS_P_Y,
+	EW_P_G,
+	EW_P_Y,
+} ped_state_t;
 
 typedef enum {
     PEAK,
@@ -92,6 +99,16 @@ typedef union {
 	
 } state_t;
 
+typedef struct{
+	traffic_state_t traffic_state;
+	rail_state_t	rail_state;
+	ped_state_t		ped_state;
+
+	bool produce_data;
+	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+
+}ic_state_data_t;
 
 typedef struct {
 	struct _pulse hdr; // Our real data comes after this header
