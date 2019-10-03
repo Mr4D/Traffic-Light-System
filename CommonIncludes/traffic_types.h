@@ -67,7 +67,6 @@ typedef enum {
 /* Struct for r/w locking of traffic states */
 typedef struct {
 	traffic_state_t current_state;
-	
 	bool produce_data;	
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
@@ -79,7 +78,6 @@ typedef struct {
 typedef struct {
 
 	rail_state_t current_state;	
-	
 	bool produce_data;	
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
@@ -88,8 +86,8 @@ typedef struct {
 
 /* Struct for r/w locking of ped states*/
 typedef struct {
-	ped_state_t current_state
 
+	ped_state_t current_state;
 	bool produce_data;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
@@ -113,9 +111,9 @@ typedef struct {
 typedef rail_state_data_t rcc_state_data_t;
 
 typedef struct{
-	traffic_state_t traffic_output_state
-	rail_state_t	rail_output_state
-	ped_state_t		ped_output_state
+	traffic_state_t 	traffic_output_state;
+	rail_state_t		rail_output_state;
+	ped_state_t			ped_output_state;
 
 	bool produce_data;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;

@@ -1,5 +1,5 @@
 #include "Output.h"
-
+#include <time.h>
 /*
  * Revised I2C LCD writing.
  *
@@ -186,8 +186,8 @@ int writeLCD(int row, int col, char write[], int* filep)
 	volatile uint8_t LCDi2cAdd = 0x3C;
 	// write some Text to the LCD screen
 
-	size_t n = sizeof(write[])/sizeof(write[0]);
-	uint8_t	LCDdata[n]= {};
+	size_t n = sizeof(write)/sizeof(write[0]);
+	uint8_t	LCDdata[n];
 	strcpy(LCDdata,write);
 
 
@@ -204,9 +204,11 @@ int writeLCD(int row, int col, char write[], int* filep)
 
 
 
-void * LCD_Control(void * data) {
+void * LCD_Control(void * data){
 	/* RUN THIS AS THREAD */
 
+	clock_t start,end;
+	double BBB_time_used;
 
 	int error;
 	int *filep;
@@ -216,6 +218,7 @@ void * LCD_Control(void * data) {
 	traffic_state_t trafficOutputState;
 	rail_state_t	railOutputState;
 	ped_state_t		pedOutputState;
+
 
 	error = openLCD(filep);
 	if (error != 0)
@@ -229,26 +232,27 @@ void * LCD_Control(void * data) {
 
 	ic_state_data_t * td = (ic_state_data_t*) data;
 
-
+	trafficOutputState = INITIAL;
+	railOutputState = NO_TRAIN;
 	while (1) {
-		pthread_mutex_lock(&td->mutex_state);
+		/* pthread_mutex_lock(&td->mutex_state);
 
 		while (td->produce_data) {
 			pthread_cond_wait(&td->cond_state_changed, &td->mutex_state);
 		}
-//
+
 		trafficOutputState = td -> traffic_output_state;
 		railOutputState = td-> rail_output_state;
 		pedOutputState = td->ped_output_state;
 
 		td->produce_data = true;
 		pthread_cond_signal(&td->cond_state_changed);
-		pthread_mutex_unlock(&td->mutex_state);
+		pthread_mutex_unlock(&td->mutex_state);*/
 
-		//boom gate and pedestrian states required. Current conditions assume peds = red.
-		switch(outputState)
+		start = clock();
+
+		switch(trafficOutputState)
 		{
-
 		case INITIAL:
 			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
 			writeLCD(0,0,L1,filep);
@@ -272,7 +276,7 @@ void * LCD_Control(void * data) {
 
 		case NS_S_G:
 			L1[3] = '-'; L1[5] = 'G'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
-			if(rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[3] = 'G'; L1[5] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = '-'; L2[5] = 'G'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
@@ -281,7 +285,7 @@ void * LCD_Control(void * data) {
 
 		case NS_S_Y:
 			L1[3] = 'Y'; L1[5] = 'Y'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
-			if(rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[5] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'Y'; L2[5] = 'Y'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
@@ -290,7 +294,7 @@ void * LCD_Control(void * data) {
 
 		case EW_R_G:
 			L1[3] = 'G'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'G'; L1[19] = 'R';
-			if (rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[17] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'G'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'G'; L2[19] = 'R';
@@ -299,7 +303,7 @@ void * LCD_Control(void * data) {
 
 		case EW_R_Y:
 			L1[3] = 'Y'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'Y'; L1[19] = 'R';
-			if (rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[17] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'Y'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'Y'; L2[19] = 'R';
@@ -308,7 +312,7 @@ void * LCD_Control(void * data) {
 
 		case EW_S_G:
 			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = '-'; L1[15] = 'G'; L1[17] = 'G'; L1[19] = 'R';
-			if (rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[13] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = '-'; L2[15] = 'G'; L2[17] = 'G'; L2[19] = 'R';
@@ -317,7 +321,7 @@ void * LCD_Control(void * data) {
 
 		case EW_S_Y:
 			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'Y'; L1[15] = 'Y'; L1[17] = 'G'; L1[19] = 'R';
-			if (rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[13] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'Y'; L2[15] = 'Y'; L2[17] = 'G'; L2[19] = 'R';
@@ -326,7 +330,7 @@ void * LCD_Control(void * data) {
 
 		case NS_R_G:
 			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'G'; L1[9] = 'R'; L1[13] = 'G'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
-			if (rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[13] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'G'; L2[9] = 'R'; L2[13] = 'G'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
@@ -335,7 +339,7 @@ void * LCD_Control(void * data) {
 
 		case NS_R_Y:
 			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'Y'; L1[9] = 'R'; L1[13] = 'Y'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
-			if (rail_output_state == TRAIN)
+			if(railOutputState == TRAIN)
 				L1[13] = 'R';
 			writeLCD(0,0,L1,filep);
 			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'Y'; L2[9] = 'R'; L2[13] = 'Y'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
@@ -349,22 +353,57 @@ void * LCD_Control(void * data) {
 			writeLCD(1,0,L2,filep);
 			break;
 		}
+		end = clock();
 
-		/*switch(ped_output_state)
+		switch(pedOutputState)
 		{
+		case ALL_RED_P:
+			L1[9] = 'R';
+			writeLCD(0,9,L1[9],filep);
+			L2[9] = 'R';
+			writeLCD(1,9,L2[9],filep);
+			L1[19] = 'R';
+			writeLCD(0,19,L1[19],filep);
+			L2[19] = 'R';
+			writeLCD(1,19,L2[19],filep);
+			break;
 		case NS_P_G:
 			L1[9] = 'G';
 			writeLCD(0,9,L1[9],filep);
 			L2[9] = 'G';
 			writeLCD(1,9,L2[9],filep);
 			break;
+		case NS_P_Y:
+			L1[9] = 'Y';
+			writeLCD(0,9,L1[9],filep);
+			L2[9] = 'Y';
+			writeLCD(1,9,L2[9],filep);
+			break;
+		case EW_P_G:
+			L1[19] = 'G';
+			writeLCD(0,19,L1[19],filep);
+			L2[19] = 'G';
+			writeLCD(1,19,L2[19],filep);
+			break;
+		case EW_P_Y:
+			L1[19] = 'Y';
+			writeLCD(0,19,L1[19],filep);
+			L2[19] = 'Y';
+			writeLCD(1,19,L2[19],filep);
+			break;
+		default:
+			L1[9] = 'R';
+			writeLCD(0,9,L1[9],filep);
+			L2[9] = 'R';
+			writeLCD(1,9,L2[9],filep);
+			L1[19] = 'R';
+			writeLCD(0,19,L1[19],filep);
+			L2[19] = 'R';
+			writeLCD(1,19,L2[19],filep);
+			break;
+		}
 
-		}*/
 
-
-
-		//printf("Output will show out for state %d\n", outputState);
+		BBB_time_used =  ((double) (end - start)) / CLOCKS_PER_SEC;
+		printf("Time Taken: %f\n", BBB_time_used);
 	}
-
-}
-
