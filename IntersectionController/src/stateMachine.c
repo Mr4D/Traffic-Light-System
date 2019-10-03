@@ -241,6 +241,8 @@ void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer){
 
 void * trafficStateMachine(void * data) {
 
+	my_message_t timer_msg;
+
 	traffic_state_t previous_state = INITIAL;
 
 	traffic_state_data_t * state_data = (traffic_state_data_t *) data;
@@ -265,7 +267,7 @@ void * trafficStateMachine(void * data) {
 
 		timer_settime(state_timer_id, 0, &itime_state_timer, NULL);	// and start the timer!
 
-		rcvid = MsgReceive(chid, &msg, sizeof(msg), NULL);	// Wait for timer signal
+		rcvid = MsgReceive(chid, &timer_msg, sizeof(timer_msg), NULL);	// Wait for timer signal
 	}
 
 	return EXIT_SUCCESS;

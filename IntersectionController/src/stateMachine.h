@@ -42,7 +42,6 @@ int chid;
 int rcvid;
 int val;
 
-my_message_t msg;
 
 traffic_mode_t mode;
 
