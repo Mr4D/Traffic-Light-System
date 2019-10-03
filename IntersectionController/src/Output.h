@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/neutrino.h>
+#include <sys/netmgr.h>
 
 #include <traffic_types.h>
 
@@ -54,6 +55,4 @@ void * LCD_Control(void * data);
 
 int writeLCD(int row, int col, char write[], int* file);
 int openLCD();
-
-void *LCD_Control(void* data);
 

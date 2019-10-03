@@ -203,8 +203,11 @@ int writeLCD(int row, int col, char write[], int* filep)
 }
 
 
+
 void * LCD_Control(void * data) {
 	/* RUN THIS AS THREAD */
+
+
 	int error;
 	int *filep;
 	char L1[21] = {'N', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_', 'E', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_'};
@@ -216,7 +219,10 @@ void * LCD_Control(void * data) {
 
 	error = openLCD(filep);
 	if (error != 0)
+	{
 		printf("Fatal Error: LCD could not initialize.");
+		exit(EXIT_FAILURE);
+	}
 
 	writeLCD(0,0,L1,filep);
 	writeLCD(1,0,L2,filep);
@@ -239,7 +245,7 @@ void * LCD_Control(void * data) {
 		pthread_cond_signal(&td->cond_state_changed);
 		pthread_mutex_unlock(&td->mutex_state);
 
-		//boom gate and pedestrian states required. Current conditions assume peds = red, boom gate = up.
+		//boom gate and pedestrian states required. Current conditions assume peds = red.
 		switch(outputState)
 		{
 
@@ -278,7 +284,6 @@ void * LCD_Control(void * data) {
 			if(rail_output_state == TRAIN)
 				L1[5] = 'R';
 			writeLCD(0,0,L1,filep);
-
 			L2[3] = 'Y'; L2[5] = 'Y'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
 			writeLCD(1,0,L2,filep);
 			break;
@@ -344,6 +349,17 @@ void * LCD_Control(void * data) {
 			writeLCD(1,0,L2,filep);
 			break;
 		}
+
+		/*switch(ped_output_state)
+		{
+		case NS_P_G:
+			L1[9] = 'G';
+			writeLCD(0,9,L1[9],filep);
+			L2[9] = 'G';
+			writeLCD(1,9,L2[9],filep);
+			break;
+
+		}*/
 
 
 
