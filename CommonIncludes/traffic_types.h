@@ -9,23 +9,26 @@
 #define TCC_CRITICAL_CHANNEL  "s3378373_state_recieve"
 #define I1_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
 
-// QNET Channels
+/* QNET Channels */
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
 #define I1_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" I1_HOSTNAME "/dev/name/local/" I1_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
 
 
-// Client IDs
+/* Client IDs */
 #define I1_CLIENT_ID 1
 #define I2_CLIENT_ID 2
 #define TCC_CLIENT_ID 3
 #define X1_CLIENT_ID 4
 #define RCC_CLIENT_ID 5
 
+/* Boolean typedef */
 typedef enum {
     false,
     true
 } bool;
 
+
+/* Traffic light states */
 typedef enum {
     INITIAL,
     ALL_RED,
@@ -40,16 +43,28 @@ typedef enum {
     NS_R_Y
 } traffic_state_t;
 
+/* Train states*/
 typedef enum {
 	TRAIN,
 	NO_TRAIN
 } rail_state_t;
 
+/* Pedestrian states */
+typedef enum {
+	ALL_RED_P,
+	NS_P_G,
+	NS_P_Y,
+	EW_P_G,
+	EW_P_Y,
+} ped_state_t;
+
+/* Peak/offpeak superstate for traffic */
 typedef enum {
     PEAK,
     OFF_PEAK
 } traffic_mode_t;
 
+/* Struct for r/w locking of traffic states */
 typedef struct {
 	traffic_state_t current_state;
 	
@@ -59,6 +74,8 @@ typedef struct {
 
 } traffic_state_data_t;
 
+
+/* Struct for r/w locking of rail states*/
 typedef struct {
 
 	rail_state_t current_state;	
@@ -69,6 +86,17 @@ typedef struct {
 
 } rail_state_data_t;
 
+/* Struct for r/w locking of ped states*/
+typedef struct {
+	ped_state_t current_state
+
+	bool produce_data;
+	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+
+}	ped_state_data_t;
+
+/* tcc state requirements*/
 typedef struct {
 
 	traffic_state_t i1_state;	
@@ -81,7 +109,19 @@ typedef struct {
 
 } tcc_state_data_t;
 
+/* Rail doesn't consider traffic situation, hence rcc only uses rail state data.*/
 typedef rail_state_data_t rcc_state_data_t;
+
+typedef struct{
+	traffic_state_t traffic_output_state
+	rail_state_t	rail_output_state
+	ped_state_t		ped_output_state
+
+	bool produce_data;
+	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+
+}ic_state_data_t;
 
 typedef union {
 	
