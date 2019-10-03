@@ -207,8 +207,8 @@ void * LCD_Control(void * data) {
 	/* RUN THIS AS THREAD */
 	int error;
 	int *filep;
-	char base[21] = {'N', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_', 'E', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_'};
-	char base2[21] = {'S',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_','W',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_'};
+	char L1[21] = {'N', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_', 'E', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_'};
+	char L2[21] = {'S',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_','W',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_'};
 
 	traffic_state_t trafficOutputState;
 	rail_state_t	railOutputState;
@@ -218,8 +218,8 @@ void * LCD_Control(void * data) {
 	if (error != 0)
 		printf("Fatal Error: LCD could not initialize.");
 
-	writeLCD(0,0,base,filep);
-	writeLCD(1,0,base2,filep);
+	writeLCD(0,0,L1,filep);
+	writeLCD(1,0,L2,filep);
 
 	ic_state_data_t * td = (ic_state_data_t*) data;
 
@@ -230,102 +230,122 @@ void * LCD_Control(void * data) {
 		while (td->produce_data) {
 			pthread_cond_wait(&td->cond_state_changed, &td->mutex_state);
 		}
+//
+		trafficOutputState = td -> traffic_output_state;
+		railOutputState = td-> rail_output_state;
+		pedOutputState = td->ped_output_state;
 
-		trafficOutputState = td -> current_state;
-
+		td->produce_data = true;
+		pthread_cond_signal(&td->cond_state_changed);
+		pthread_mutex_unlock(&td->mutex_state);
 
 		//boom gate and pedestrian states required. Current conditions assume peds = red, boom gate = up.
 		switch(outputState)
 		{
 
 		case INITIAL:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case ALL_RED:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case FAULT:
-			base[3] = 'Y'; base[5] = 'Y'; base[7] = 'Y'; base[9] = 'Y'; base[13] = 'Y'; base[15] = 'Y'; base[17] = 'Y'; base[19] = 'Y';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'Y'; base2[5] = 'Y'; base2[7] = 'Y'; base2[9] = 'Y'; base2[13] = 'Y'; base2[15] = 'Y'; base2[17] = 'Y'; base2[19] = 'Y';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'Y'; L1[5] = 'Y'; L1[7] = 'Y'; L1[9] = 'Y'; L1[13] = 'Y'; L1[15] = 'Y'; L1[17] = 'Y'; L1[19] = 'Y';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'Y'; L2[5] = 'Y'; L2[7] = 'Y'; L2[9] = 'Y'; L2[13] = 'Y'; L2[15] = 'Y'; L2[17] = 'Y'; L2[19] = 'Y';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case NS_S_G:
-			base[3] = '-'; base[5] = 'G'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = '-'; base2[5] = 'G'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = '-'; L1[5] = 'G'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			if(rail_output_state == TRAIN)
+				L1[3] = 'G'; L1[5] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = '-'; L2[5] = 'G'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case NS_S_Y:
-			base[3] = 'Y'; base[5] = 'Y'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'Y'; base2[5] = 'Y'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'Y'; L1[5] = 'Y'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			if(rail_output_state == TRAIN)
+				L1[5] = 'R';
+			writeLCD(0,0,L1,filep);
+
+			L2[3] = 'Y'; L2[5] = 'Y'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case EW_R_G:
-			base[3] = 'G'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'G'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'G'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'G'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'G'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'G'; L1[19] = 'R';
+			if (rail_output_state == TRAIN)
+				L1[17] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'G'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'G'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case EW_R_Y:
-			base[3] = 'Y'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'Y'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'Y'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'Y'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'Y'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'Y'; L1[19] = 'R';
+			if (rail_output_state == TRAIN)
+				L1[17] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'Y'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'Y'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case EW_S_G:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = '-'; base[15] = 'G'; base[17] = 'G'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = '-'; base2[15] = 'G'; base2[17] = 'G'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = '-'; L1[15] = 'G'; L1[17] = 'G'; L1[19] = 'R';
+			if (rail_output_state == TRAIN)
+				L1[13] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = '-'; L2[15] = 'G'; L2[17] = 'G'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case EW_S_Y:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = 'Y'; base[15] = 'Y'; base[17] = 'G'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'Y'; base2[15] = 'Y'; base2[17] = 'G'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'Y'; L1[15] = 'Y'; L1[17] = 'G'; L1[19] = 'R';
+			if (rail_output_state == TRAIN)
+				L1[13] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'Y'; L2[15] = 'Y'; L2[17] = 'G'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case NS_R_G:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'G'; base[9] = 'R'; base[13] = 'G'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'G'; base2[9] = 'R'; base2[13] = 'G'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'G'; L1[9] = 'R'; L1[13] = 'G'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			if (rail_output_state == TRAIN)
+				L1[13] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'G'; L2[9] = 'R'; L2[13] = 'G'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		case NS_R_Y:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'Y'; base[9] = 'R'; base[13] = 'Y'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'Y'; base2[9] = 'R'; base2[13] = 'Y'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'Y'; L1[9] = 'R'; L1[13] = 'Y'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			if (rail_output_state == TRAIN)
+				L1[13] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'Y'; L2[9] = 'R'; L2[13] = 'Y'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 
 		default:
-			base[3] = 'R'; base[5] = 'R'; base[7] = 'R'; base[9] = 'R'; base[13] = 'R'; base[15] = 'R'; base[17] = 'R'; base[19] = 'R';
-			writeLCD(0,0,base,filep);
-			base2[3] = 'R'; base2[5] = 'R'; base2[7] = 'R'; base2[9] = 'R'; base2[13] = 'R'; base2[15] = 'R'; base2[17] = 'R'; base2[19] = 'R';
-			writeLCD(1,0,base2,filep);
+			L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
+			writeLCD(0,0,L1,filep);
+			L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
+			writeLCD(1,0,L2,filep);
 			break;
 		}
 
-		td->produce_data = true;
-		pthread_cond_signal(&td->cond_state_changed);
-		pthread_mutex_unlock(&td->mutex_state);
+
 
 		//printf("Output will show out for state %d\n", outputState);
 	}
