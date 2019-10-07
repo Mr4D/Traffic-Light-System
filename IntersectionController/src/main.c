@@ -10,8 +10,12 @@
 
 int main(void) {
 
-	traffic_state_data_t traffic_state_data = {
-		INITIAL,
+	ic_state_data_t ic_state_data = {
+
+		NS_S_G, //change to INITIAL
+		TRAIN, 	//Change to NO_TRAIN
+		NS_P_G,	//Change to INITIAL
+
 		true,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
@@ -26,14 +30,15 @@ int main(void) {
 
 
 
+
 	mode = PEAK;
 
 	InputFlags flags = {OFF,OFF,OFF,OFF,OFF,OFF};
 
 	initiliseTimer();
 
-	pthread_t traffic_state_machine;
 	//pthread_t t_input;
+	pthread_t traffic_state_machine;
 	pthread_t t_output;
 
 	// messaging threads

@@ -244,8 +244,13 @@ void * trafficStateMachine(void * data) {
 	my_message_t timer_msg;
 
 	traffic_state_t previous_state = INITIAL;
+	traffic_state_t current_state = NULL;
 
-	traffic_state_data_t * state_data = (traffic_state_data_t *) data;
+	traffic_state_data_t state_data;
+
+	ic_state_data_t * total_data = (ic_state_data_t*) data;
+
+	state_data->traffic_state_t = total_data->traffic_output_state;
 
 	while(1) {
 
