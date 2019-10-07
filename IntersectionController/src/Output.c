@@ -220,22 +220,8 @@ void * LCD_Control(void * data){
 	char buffer[2];
 	ic_state_data_t * td = (ic_state_data_t*) data;
 
-		pthread_mutex_lock(&ic_state_data->mutex_state);
 
-		while (ic_state_data->produce_data){
-			pthread_cond_wait(&ic_state_data->cond_state_changed, &ic_state_data->mutex_state);
-		}
-
-		traffic_state = ic_state_data->traffic_state;
-		rail_state = ic_state_data->rail_state;
-		ped_state = ic_state_data->ped_state;
-
-
-		ic_state_data->produce_data = true;
-		pthread_cond_signal(&ic_state_data->cond_state_changed);
-		pthread_mutex_unlock(&ic_state_data->mutex_state);
-
-		printf("State\n\tTraffic: %d\n\tRail   : %d\n\tPed    : %d\n\n", traffic_state, rail_state, ped_state);
+	//printf("State\n\tTraffic: %d\n\tRail   : %d\n\tPed    : %d\n\n", traffic_state, rail_state, ped_state);
 	traffic_state_t trafficOutputState;
 	rail_state_t	railOutputState;
 	ped_state_t		pedOutputState;
@@ -265,9 +251,9 @@ void * LCD_Control(void * data){
 			pthread_cond_wait(&td->cond_state_changed, &td->mutex_state);
 		}
 
-		trafficOutputState = td ->traffic_output_state;
-		railOutputState = td-> rail_output_state;
-		pedOutputState = td->ped_output_state;
+		trafficOutputState = td ->traffic_state;
+		railOutputState = td-> rail_state;
+		pedOutputState = td->ped_state;
 
 		td->produce_data = true;
 		pthread_cond_signal(&td->cond_state_changed);

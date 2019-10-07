@@ -50,15 +50,6 @@ typedef enum {
 	NO_TRAIN
 } rail_state_t;
 
-/* Pedestrian states */
-typedef enum {
-	ALL_RED_P,
-	NS_P_G,
-	NS_P_Y,
-	EW_P_G,
-	EW_P_Y,
-} ped_state_t;
-
 /* Peak/offpeak superstate for traffic */
 typedef enum {
 	ALL_RED_P,
@@ -119,16 +110,7 @@ typedef struct {
 /* Rail doesn't consider traffic situation, hence rcc only uses rail state data.*/
 typedef rail_state_data_t rcc_state_data_t;
 
-typedef struct{
-	traffic_state_t 	traffic_output_state;
-	rail_state_t		rail_output_state;
-	ped_state_t			ped_output_state;
 
-	bool produce_data;
-	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
-
-}ic_state_data_t;
 
 typedef union {
 	

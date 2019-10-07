@@ -63,7 +63,7 @@ void initiliseTimer() {
 	}
 }
 
-void changeTrafficState_peak(traffic_state_data_t * state_data, traffic_state_t * previous_state) {
+void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * previous_state) {
 
 	traffic_state_t next_state = INITIAL;
 
@@ -74,7 +74,7 @@ void changeTrafficState_peak(traffic_state_data_t * state_data, traffic_state_t 
 	}
 	//printf("State: %d\n", state_data->current_state);
 
-	switch(state_data->current_state) {
+	switch(state_data->traffic_state) {
 
 		case INITIAL:
 			next_state = ALL_RED;
@@ -137,8 +137,8 @@ void changeTrafficState_peak(traffic_state_data_t * state_data, traffic_state_t 
 	}
 
 
-	*previous_state = state_data->current_state;
-	state_data->current_state = next_state;
+	*previous_state = state_data->traffic_state;
+	state_data->traffic_state = next_state;
 
 	state_data->produce_data = false;
 	pthread_cond_signal(&state_data->cond_state_changed);
@@ -244,13 +244,13 @@ void * trafficStateMachine(void * data) {
 	my_message_t timer_msg;
 
 	traffic_state_t previous_state = INITIAL;
-	traffic_state_t current_state = NULL;
 
-	traffic_state_data_t state_data;
 
-	ic_state_data_t * total_data = (ic_state_data_t*) data;
+	//traffic_state_data_t * state_data;
 
-	state_data->traffic_state_t = total_data->traffic_output_state;
+	ic_state_data_t * state_data = (ic_state_data_t*) data;
+
+
 
 	while(1) {
 
@@ -265,9 +265,9 @@ void * trafficStateMachine(void * data) {
 		}
 
 
-		updateStateTimer(state_data->current_state, &itime_state_timer);
+		updateStateTimer(state_data->traffic_state, &itime_state_timer);
 
-		printState(state_data->current_state);
+		printState(state_data->traffic_state);
 		printf("Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
 
 		timer_settime(state_timer_id, 0, &itime_state_timer, NULL);	// and start the timer!

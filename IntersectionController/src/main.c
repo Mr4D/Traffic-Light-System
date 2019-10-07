@@ -46,9 +46,9 @@ int main(void) {
 	pthread_t critical_server_channel;
 
 	//pthread_create(&t_input, NULL, &inputThread, &flags);
-	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &traffic_state_data);
+	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &ic_state_data);
 	//pthread_create(&t_output,NULL,LCD_Control,&sd);
-	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
+	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &ic_state_data);
 
 	pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
 
