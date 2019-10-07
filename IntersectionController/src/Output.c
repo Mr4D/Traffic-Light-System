@@ -1,5 +1,5 @@
 #include "Output.h"
-#include <time.h>
+
 /*
  * Revised I2C LCD writing.
  *
@@ -76,6 +76,7 @@ void SetCursor(int *fd, uint8_t LCDi2cAdd, uint8_t row, uint8_t column)
 	 *
 	 *
 	 */
+
 	uint8_t position = 0x80; // SET_DDRAM_CMD (control bit)
 	uint8_t rowValue = 0;
 	uint8_t	LCDcontrol = 0;
@@ -196,8 +197,8 @@ int writeLCD(int row, int col, char write[], int* filep)
 	werror = I2cWrite_(filep, LCDi2cAdd, DATA_SEND, &LCDdata[0], sizeof(LCDdata));
 	// write new data to I2C
 
-	printf("\nComplete\n");
-	sleep(5);
+	//printf("\nComplete\n");
+
 	return werror;
 }
 
@@ -212,12 +213,19 @@ void * LCD_Control(void * data){
 	int error;
 	int file;
 	int * filep = &file;
+
 	char L1[21] = {'N', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_', 'E', ':', 0x7F, '_', 0x5E, '_', 0x7E, '_', 'P', '_'};
 	char L2[21] = {'S',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_','W',':',0x7F,'_',0x5E,'_',0x7E,'_','P','_'};
+
 	char buffer[2];
+	ic_state_data_t * td = (ic_state_data_t*) data;
+
 	traffic_state_t trafficOutputState;
 	rail_state_t	railOutputState;
 	ped_state_t		pedOutputState;
+
+	//trafficOutputState = td->traffic_output_state;
+	//railOutputState = td->rail_output_state;
 
 
 	error = openLCD(filep);
@@ -230,25 +238,24 @@ void * LCD_Control(void * data){
 	writeLCD(0,0,L1,filep);
 	writeLCD(1,0,L2,filep);
 
-	ic_state_data_t * td = (ic_state_data_t*) data;
+	td->produce_data = false;
 
-	trafficOutputState = INITIAL;
-	railOutputState = NO_TRAIN;
+
 	while (1)
 	{
-		/* pthread_mutex_lock(&td->mutex_state);
+		pthread_mutex_lock(&td->mutex_state);
 
 		while (td->produce_data) {
 			pthread_cond_wait(&td->cond_state_changed, &td->mutex_state);
 		}
 
-		trafficOutputState = td -> traffic_output_state;
+		trafficOutputState = td ->traffic_output_state;
 		railOutputState = td-> rail_output_state;
 		pedOutputState = td->ped_output_state;
 
 		td->produce_data = true;
 		pthread_cond_signal(&td->cond_state_changed);
-		pthread_mutex_unlock(&td->mutex_state);*/
+		pthread_mutex_unlock(&td->mutex_state);
 
 
 
@@ -407,7 +414,6 @@ void * LCD_Control(void * data){
 		}
 
 
-		BBB_time_used =  ((double) (end - start)) / CLOCKS_PER_SEC;
-		printf("Time Taken: %f\n", BBB_time_used);
+
 	}
 }

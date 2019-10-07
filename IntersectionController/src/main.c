@@ -10,12 +10,17 @@
 
 int main(void) {
 
-	traffic_state_data_t state_data = {
-		INITIAL,
+	ic_state_data_t ic_state_data = {
+
+		NS_S_G, //change to INITIAL
+		TRAIN, 	//Change to NO_TRAIN
+		NS_P_G,	//Change to INITIAL
+
 		true,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
 	};
+
 
 
 	mode = PEAK;
@@ -24,16 +29,16 @@ int main(void) {
 
 	initiliseTimer();
 
-	pthread_t traffic_state_machine;
 	//pthread_t t_input;
+	pthread_t traffic_state_machine;
 	pthread_t t_output;
 
 	// messaging threads
 	pthread_t critical_client_channel;
 
 	//pthread_create(&t_input, NULL, &inputThread, &flags);
-	//pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &state_data);
-	pthread_create(&t_output,NULL,LCD_Control,NULL);
+	//pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &ic_state_data);
+	pthread_create(&t_output,NULL,LCD_Control,(void*) &ic_state_data);
 	//pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &state_data);
 
 	//pthread_join(t_input, NULL);
