@@ -10,6 +10,8 @@
 #include <sched.h>
 #include <sys/procmgr.h>
 
+#include <traffic_types.h>
+
 
 #define AM335X_CONTROL_MODULE_BASE   (uint64_t) 0x44E10000
 #define AM335X_CONTROL_MODULE_SIZE   (size_t)   0x00001448
@@ -67,18 +69,6 @@
 #define	EW_STR 5
 #define	EW_R   6
 #define	EW_P   7
-
-
-typedef enum {ON, OFF} TrafficInput;
-
-typedef struct {
-	TrafficInput ns_str;
-	TrafficInput ns_r;
-	TrafficInput ns_p;
-	TrafficInput ew_str;
-	TrafficInput ew_r;
-	TrafficInput ew_p;
-}InputFlags;
 
 
 typedef union _CONF_MODULE_PIN_STRUCT   // See TRM Page 1420

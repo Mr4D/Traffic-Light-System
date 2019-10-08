@@ -47,8 +47,8 @@ int val;
 traffic_mode_t mode;
 
 void initiliseTimer();
-void changeTrafficState_peak(ic_state_data_t * statedata, traffic_state_t * previous_state);
-void changeTrafficState_offPeak(traffic_state_data_t * statedata, traffic_state_t * previous_state);
+void changeTrafficState_peak(traffic_state_data_t * statedata, traffic_state_t * previous_state, input_data_t * input_data);
+void changeTrafficState_offPeak(traffic_state_data_t * statedata, traffic_state_t * previous_state, input_data_t * input_data);
 void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer);
 void * trafficStateMachine(void * data);
 

@@ -10,32 +10,49 @@
 
 int main(void) {
 
-	ic_state_data_t ic_state_data = {
+	traffic_state_data_t traffic_state_data = {
 
-		NS_S_G, //change to INITIAL
-		TRAIN, 	//Change to NO_TRAIN
-		true,
+		INITIAL, //change to INITIAL
+		false,
+		false,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
 	};
 
 	rail_state_data_t rail_state_data = {
 		NO_TRAIN,
-		true,
+		false,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
 	};
 
+	input_data_t input_data = {
+			OFF,
+			OFF,
+			OFF,
+			OFF,
+			OFF,
+			OFF,
+			PTHREAD_RWLOCK_INITIALIZER
+	};
 
+	ic_state_data_t ic_state_data = {
+			&traffic_state_data,
+			&rail_state_data
+	};
+
+	state_machine_data_t state_machine_data = {
+			&input_data,
+			&ic_state_data
+	};
 
 
 	mode = PEAK;
 
-	InputFlags flags = {OFF,OFF,OFF,OFF,OFF,OFF};
 
 	initiliseTimer();
 
-	//pthread_t t_input;
+	pthread_t t_input;
 	pthread_t traffic_state_machine;
 	pthread_t t_output;
 
@@ -43,16 +60,16 @@ int main(void) {
 	pthread_t critical_client_channel;
 	pthread_t critical_server_channel;
 
-	//pthread_create(&t_input, NULL, &inputThread, &flags);
-	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &ic_state_data);
-	//pthread_create(&t_output,NULL,LCD_Control,&sd);
-	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &ic_state_data);
+	pthread_create(&t_input, NULL, &inputThread, &input_data);
+	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &state_machine_data);
+	pthread_create(&t_output, NULL, LCD_Control, &ic_state_data);
+	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
 
 	pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
 
-	//pthread_join(t_input, NULL);
+	pthread_join(t_input, NULL);
 	pthread_join(traffic_state_machine, NULL);
-	//pthread_join(t_output, NULL);
+	pthread_join(t_output, NULL);
 	pthread_join(critical_client_channel, NULL);
 	pthread_join(critical_server_channel, NULL);
 

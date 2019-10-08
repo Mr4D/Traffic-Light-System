@@ -34,13 +34,13 @@ void * critical_client_channel_thread(void * data){
 	while(1){
 		pthread_mutex_lock(&state_data->mutex_state);
 
-		while (state_data->produce_data){
+		while (!state_data->data_ready_message){
 			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
 		}
 
 		msg.state.traffic_state = state_data->current_state;
 
-		state_data->produce_data = true;
+		state_data->data_ready_message = false;
 		pthread_cond_signal(&state_data->cond_state_changed);
 		pthread_mutex_unlock(&state_data->mutex_state);
 

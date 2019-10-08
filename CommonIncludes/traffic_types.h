@@ -2,9 +2,10 @@
 
 #define BUF_SIZE 100
 
-#define I1_HOSTNAME "RMIT_BBB_v5_02"
+//#define I1_HOSTNAME "RMIT_BBB_v5_02"
 #define TCC_HOSTNAME "RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
+#define I1_HOSTNAME "RMIT_BBB_v5_07"
 
 
 #define TCC_CRITICAL_CHANNEL  "s3378373_state_recieve"
@@ -21,6 +22,10 @@
 #define TCC_CLIENT_ID 3
 #define X1_CLIENT_ID 4
 #define RCC_CLIENT_ID 5
+
+
+#define INPUT_COUNT 10
+
 
 /* Boolean typedef */
 typedef enum {
@@ -79,7 +84,10 @@ typedef enum {
 /* Struct for r/w locking of traffic states */
 typedef struct {
 	traffic_state_t current_state;
-	bool produce_data;	
+
+	bool data_ready_output;
+	bool data_ready_message;
+
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
@@ -90,7 +98,8 @@ typedef struct {
 typedef struct {
 
 	rail_state_t current_state;	
-	bool produce_data;	
+
+	bool data_ready;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
@@ -123,24 +132,33 @@ typedef struct {
 typedef rail_state_data_t rcc_state_data_t;
 
 
-
 typedef union {
-	
 	traffic_state_t traffic_state;
 	rail_state_t rail_state;
-	
 } state_t;
 
 typedef struct{
-	traffic_state_t traffic_state;
-	rail_state_t	rail_state;
-	// ped_state_t		ped_state;
+	traffic_state_data_t * traffic_state_data;
+	rail_state_data_t * rail_state_data;
+} ic_state_data_t;
 
-	bool produce_data;
-	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+typedef enum {ON, OFF} TrafficInput;
 
-}ic_state_data_t;
+typedef struct {
+	TrafficInput ns_str;
+	TrafficInput ns_r;
+	TrafficInput ew_str;
+	TrafficInput ew_r;
+	TrafficInput ns_p;
+	TrafficInput ew_p;
+
+	pthread_rwlock_t rwlock_input;
+} input_data_t;
+
+typedef struct {
+	input_data_t * input_data;
+	ic_state_data_t * ic_state_data;
+} state_machine_data_t;
 
 typedef struct {
 	struct _pulse hdr; // Our real data comes after this header

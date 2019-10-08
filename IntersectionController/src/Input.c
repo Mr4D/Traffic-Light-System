@@ -190,7 +190,7 @@ const struct sigevent* Inthandler( void* area, int id )
 void * inputThread(void * data){
 
 	printf("inputThread\n");
-	InputFlags * flags = (InputFlags*)data;
+	input_data_t * input_data = (input_data_t*) data;
 
 
 			// gain access to device registers for "Control Module" and "GPIO1"
@@ -287,34 +287,35 @@ void * inputThread(void * data){
 			int val = readKeypad( gpio1_base);
 
 
+			pthread_rwlock_wrlock(&input_data->rwlock_input);
 			switch(val)
 			{
 				case NS_STR:
-					flags->ns_str = ON;
+					input_data->ns_str = ON;
 					break;
 				case NS_R:
-					flags->ns_r = ON;
+					input_data->ns_r = ON;
 					break;
 				case NS_P:
-					flags->ns_p = ON;
+					input_data->ns_p = ON;
 					break;
 				case EW_STR:
-					flags->ew_str = ON;
+					input_data->ew_str = ON;
 					break;
 				case EW_R:
-					flags->ew_r = ON;
+					input_data->ew_r = ON;
 					break;
 				case EW_P:
-					flags->ew_p = ON;
+					input_data->ew_p = ON;
 					break;
 				default:
 					break;
 
 			}
-
+			pthread_rwlock_unlock(&input_data->rwlock_input);
 
 			// North South Straight
-			if(flags->ns_str == ON){
+			if(input_data->ns_str == ON){
 				printf("\nNS_STR = ON\n");
 			}
 			else{
@@ -322,7 +323,7 @@ void * inputThread(void * data){
 			}
 
 			// North South Right Turn
-			if(flags->ns_r == ON){
+			if(input_data->ns_r == ON){
 				printf("NS_R = ON\n");
 			}
 			else{
@@ -330,7 +331,7 @@ void * inputThread(void * data){
 			}
 
 			// North South Pedestrian
-			if(flags->ns_p == ON){
+			if(input_data->ns_p == ON){
 				printf("NS_P = ON\n");
 			}
 			else{
@@ -338,7 +339,7 @@ void * inputThread(void * data){
 			}
 
 			// East West Straight
-			if(flags->ew_str == ON){
+			if(input_data->ew_str == ON){
 				printf("EW_STR = ON\n");
 			}
 			else{
@@ -346,7 +347,7 @@ void * inputThread(void * data){
 			}
 
 			// East West Right Turn
-			if(flags->ew_r == ON){
+			if(input_data->ew_r == ON){
 				printf("EW_R = ON\n");
 			}
 			else{
@@ -354,7 +355,7 @@ void * inputThread(void * data){
 			}
 
 			// East West Pedestrian
-			if(flags->ew_p == ON){
+			if(input_data->ew_p == ON){
 				printf("EW_P = ON\n\n");
 			}
 			else{

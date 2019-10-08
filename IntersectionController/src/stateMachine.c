@@ -63,18 +63,20 @@ void initiliseTimer() {
 	}
 }
 
-void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * previous_state) {
+void changeTrafficState_peak(traffic_state_data_t * state_data, traffic_state_t * previous_state, input_data_t * input_data) {
 
+	printf("changeTrafficState_peak\n");
+
+	TrafficInput ns_p = OFF;
+	TrafficInput ew_p = OFF;
 	traffic_state_t next_state = INITIAL;
 
 	pthread_mutex_lock(&state_data->mutex_state);
 
-	while (!state_data->produce_data){
-		pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
-	}
+
 	//printf("State: %d\n", state_data->current_state);
 
-	switch(state_data->traffic_state) {
+	switch(state_data->current_state) {
 
 		case INITIAL:
 			next_state = ALL_RED;
@@ -108,7 +110,18 @@ void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * pre
 
 		// North south straight transitions
 		case NS_S_G_SEN:
-			next_state = NS_S_G;
+
+			pthread_rwlock_wrlock( &input_data->rwlock_input );
+				ns_p = input_data->ns_p;
+				input_data->ns_p = OFF;
+			pthread_rwlock_unlock( &input_data->rwlock_input );
+
+			if(ns_p == ON){
+				next_state = NS_S_G_P_X;
+			}
+			else{
+				next_state = NS_S_G;
+			}
 			// Next to go to the ped states if input is detected
 			break;
 
@@ -130,8 +143,17 @@ void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * pre
 
 		// East west straight transitions
 		case EW_S_G_SEN:
-			next_state = EW_S_G;
-			// Next to go to the ped states if input is detected
+			pthread_rwlock_wrlock( &input_data->rwlock_input );
+				ew_p = input_data->ew_p;
+				input_data->ew_p = OFF;
+			pthread_rwlock_unlock( &input_data->rwlock_input );
+
+			if(ew_p == ON) {
+				next_state = EW_S_G_P_X;
+			}
+			else {
+				next_state = EW_S_G;
+			}
 			break;
 
 		case EW_S_G_P_X:
@@ -174,17 +196,18 @@ void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * pre
 	}
 
 
-	*previous_state = state_data->traffic_state;
-	state_data->traffic_state = next_state;
+	*previous_state = state_data->current_state;
+	state_data->current_state = next_state;
 
-	state_data->produce_data = false;
-	pthread_cond_signal(&state_data->cond_state_changed);
+	state_data->data_ready_message = true;
+	state_data->data_ready_output = true;
+	pthread_cond_broadcast(&state_data->cond_state_changed);
 	pthread_mutex_unlock(&state_data->mutex_state);
 	printf("data produced\n");
 
 }
 
-void changeTrafficState_offPeak(traffic_state_data_t * state_data, traffic_state_t * previous_state) {
+void changeTrafficState_offPeak(traffic_state_data_t * state_data, traffic_state_t * previous_state, input_data_t * input_data) {
 
 	switch(state_data->current_state) {
 
@@ -281,33 +304,36 @@ void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer){
 
 void * trafficStateMachine(void * data) {
 
+	printf("TrafficStateMachine()\n");
 	my_message_t timer_msg;
 
 	traffic_state_t previous_state = INITIAL;
 
+	state_machine_data_t * state_machine_data = (state_machine_data_t*) data;
 
-	//traffic_state_data_t * state_data;
+	input_data_t * input_data = state_machine_data->input_data;
+	ic_state_data_t * ic_state_data = state_machine_data->ic_state_data;
 
-	ic_state_data_t * state_data = (ic_state_data_t*) data;
-
-
+	traffic_state_data_t * state_data = ic_state_data->traffic_state_data;
+	//rail_state_data_t * rail_state_data = ic_state_data->rail_state_data;
 
 	while(1) {
 
 		if (mode == PEAK) {
-			changeTrafficState_peak(state_data, &previous_state);
+
+			changeTrafficState_peak(state_data, &previous_state, input_data);
 		}
 		else if (mode == OFF_PEAK) {
-			changeTrafficState_peak(state_data, &previous_state);
+			changeTrafficState_peak(state_data, &previous_state, input_data);
 		}
 		else {
 			printf("Encountered an error\n");
 		}
 
 
-		updateStateTimer(state_data->traffic_state, &itime_state_timer);
+		updateStateTimer(state_data->current_state, &itime_state_timer);
 
-		printState(state_data->traffic_state);
+		printState(state_data->current_state);
 		printf("Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
 
 		timer_settime(state_timer_id, 0, &itime_state_timer, NULL);	// and start the timer!
