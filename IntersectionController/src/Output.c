@@ -224,7 +224,7 @@ void * LCD_Control(void * data){
 	//printf("State\n\tTraffic: %d\n\tRail   : %d\n\tPed    : %d\n\n", traffic_state, rail_state, ped_state);
 	traffic_state_t trafficOutputState;
 	rail_state_t	railOutputState;
-	ped_state_t		pedOutputState;
+
 
 	//trafficOutputState = td->traffic_output_state;
 	//railOutputState = td->rail_output_state;
@@ -253,7 +253,6 @@ void * LCD_Control(void * data){
 
 		trafficOutputState = td ->traffic_state;
 		railOutputState = td-> rail_state;
-		pedOutputState = td->ped_state;
 
 		td->produce_data = true;
 		pthread_cond_signal(&td->cond_state_changed);
@@ -367,53 +366,53 @@ void * LCD_Control(void * data){
 		}
 
 
-		switch(pedOutputState)
-		{
-		case ALL_RED_P:
-			L1[9] = 'R'; buffer[0] = L1[9];
-			writeLCD(0,9,buffer,filep);
-			L2[9] = 'R';buffer[0] = L2[9];
-			writeLCD(1,9,buffer,filep);
-			L1[19] = 'R';buffer[0] = L1[19];
-			writeLCD(0,19,buffer,filep);
-			L2[19] = 'R'; buffer[0] = L2[19];
-			writeLCD(1,19,buffer,filep);
-			break;
-		case NS_P_G:
-			L1[9] = 'G'; buffer[0] = L1[9];
-			writeLCD(0,9,buffer,filep);
-			L2[9] = 'G';buffer[0] = L2[9];
-			writeLCD(1,9,buffer,filep);
-			break;
-		case NS_P_Y:
-			L1[9] = 'Y'; buffer[0] = L1[9];
-			writeLCD(0,9,buffer,filep);
-			L2[9] = 'Y';buffer[0] = L2[9];
-			writeLCD(1,9,buffer,filep);
-			break;
-		case EW_P_G:
-			L1[19] = 'G';buffer[0] = L1[19];
-			writeLCD(0,19,buffer,filep);
-			L2[19] = 'G'; buffer[0] = L2[19];
-			writeLCD(1,19,L2[19],filep);
-			break;
-		case EW_P_Y:
-			L1[19] = 'Y';buffer[0] = L1[19];
-			writeLCD(0,19,buffer,filep);
-			L2[19] = 'Y'; buffer[0] = L2[19];
-			writeLCD(1,19,L2[19],filep);
-			break;
-		default:
-			L1[9] = 'R'; buffer[0] = L1[9];
-			writeLCD(0,9,buffer,filep);
-			L2[9] = 'R';buffer[0] = L2[9];
-			writeLCD(1,9,buffer,filep);
-			L1[19] = 'R';buffer[0] = L1[19];
-			writeLCD(0,19,buffer,filep);
-			L2[19] = 'R'; buffer[0] = L2[19];
-			writeLCD(1,19,buffer,filep);
-			break;
-		}
+//		switch(pedOutputState)
+//		{
+//		case ALL_RED_P:
+//			L1[9] = 'R'; buffer[0] = L1[9];
+//			writeLCD(0,9,buffer,filep);
+//			L2[9] = 'R';buffer[0] = L2[9];
+//			writeLCD(1,9,buffer,filep);
+//			L1[19] = 'R';buffer[0] = L1[19];
+//			writeLCD(0,19,buffer,filep);
+//			L2[19] = 'R'; buffer[0] = L2[19];
+//			writeLCD(1,19,buffer,filep);
+//			break;
+//		case NS_P_G:
+//			L1[9] = 'G'; buffer[0] = L1[9];
+//			writeLCD(0,9,buffer,filep);
+//			L2[9] = 'G';buffer[0] = L2[9];
+//			writeLCD(1,9,buffer,filep);
+//			break;
+//		case NS_P_Y:
+//			L1[9] = 'Y'; buffer[0] = L1[9];
+//			writeLCD(0,9,buffer,filep);
+//			L2[9] = 'Y';buffer[0] = L2[9];
+//			writeLCD(1,9,buffer,filep);
+//			break;
+//		case EW_P_G:
+//			L1[19] = 'G';buffer[0] = L1[19];
+//			writeLCD(0,19,buffer,filep);
+//			L2[19] = 'G'; buffer[0] = L2[19];
+//			writeLCD(1,19,L2[19],filep);
+//			break;
+//		case EW_P_Y:
+//			L1[19] = 'Y';buffer[0] = L1[19];
+//			writeLCD(0,19,buffer,filep);
+//			L2[19] = 'Y'; buffer[0] = L2[19];
+//			writeLCD(1,19,L2[19],filep);
+//			break;
+//		default:
+//			L1[9] = 'R'; buffer[0] = L1[9];
+//			writeLCD(0,9,buffer,filep);
+//			L2[9] = 'R';buffer[0] = L2[9];
+//			writeLCD(1,9,buffer,filep);
+//			L1[19] = 'R';buffer[0] = L1[19];
+//			writeLCD(0,19,buffer,filep);
+//			L2[19] = 'R'; buffer[0] = L2[19];
+//			writeLCD(1,19,buffer,filep);
+//			break;
+//		}
 
 
 

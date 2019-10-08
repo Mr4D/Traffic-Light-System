@@ -14,6 +14,7 @@
 #include <traffic_types.h>
 
 #define TIME_TRAFFIC_INITIAL 1
+#define TIME_TRAFFIC_STRAIGHT_SEN 5
 #define TIME_TRAFFIC_STRAIGHT 5
 #define TIME_TRAFFIC_TURN 3
 #define TIME_TRAFFIC_YELLOW 1

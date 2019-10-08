@@ -31,17 +31,29 @@ typedef enum {
 
 /* Traffic light states */
 typedef enum {
+
     INITIAL,
     ALL_RED,
     FAULT,
+
+	NS_S_G_SEN,
+	NS_S_G_P_X,
+	NS_S_G_P_F,
     NS_S_G,
     NS_S_Y,
-    EW_R_G,
-    EW_R_Y,
-    EW_S_G,
+
+	EW_S_G_SEN,
+	EW_S_G_P_X,
+	EW_S_G_P_F,
+	EW_S_G,
     EW_S_Y,
+
+	EW_R_G,
+    EW_R_Y,
+
     NS_R_G,
     NS_R_Y
+
 } traffic_state_t;
 
 /* Train states*/
@@ -50,14 +62,14 @@ typedef enum {
 	NO_TRAIN
 } rail_state_t;
 
-/* Peak/offpeak superstate for traffic */
-typedef enum {
-	ALL_RED_P,
-	NS_P_G,
-	NS_P_Y,
-	EW_P_G,
-	EW_P_Y,
-} ped_state_t;
+/* Peak/offpeak superstate for intersection */
+// typedef enum {
+// 	ALL_RED_P,
+// 	NS_P_G,
+// 	NS_P_Y,
+// 	EW_P_G,
+// 	EW_P_Y,
+// } ped_state_t;
 
 typedef enum {
     PEAK,
@@ -85,14 +97,14 @@ typedef struct {
 } rail_state_data_t;
 
 /* Struct for r/w locking of ped states*/
-typedef struct {
+// typedef struct {
 
-	ped_state_t current_state;
-	bool produce_data;
-	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+// 	ped_state_t current_state;
+// 	bool produce_data;
+// 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+// 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
-}	ped_state_data_t;
+// }	ped_state_data_t;
 
 /* tcc state requirements*/
 typedef struct {
@@ -122,7 +134,7 @@ typedef union {
 typedef struct{
 	traffic_state_t traffic_state;
 	rail_state_t	rail_state;
-	ped_state_t		ped_state;
+	// ped_state_t		ped_state;
 
 	bool produce_data;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;

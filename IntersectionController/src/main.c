@@ -14,8 +14,6 @@ int main(void) {
 
 		NS_S_G, //change to INITIAL
 		TRAIN, 	//Change to NO_TRAIN
-		NS_P_G,	//Change to INITIAL
-
 		true,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER

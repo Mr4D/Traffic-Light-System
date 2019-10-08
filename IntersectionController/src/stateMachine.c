@@ -82,21 +82,42 @@ void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * pre
 
 		case ALL_RED:
 			if ((*previous_state == INITIAL) || (*previous_state == NS_R_Y)) {
-				next_state = NS_S_G;
+				next_state = NS_S_G_SEN;
 			}
 			else if (*previous_state == NS_S_Y) {
 				next_state = EW_R_G;
 			}
 			else if (*previous_state == EW_R_Y) {
-				next_state = EW_S_G;
+				next_state = EW_S_G_SEN;
 			}
 			else if (*previous_state == EW_S_Y) {
 				next_state = NS_R_G;
 			}
 			break;
 
+
+
+
 		case FAULT:
 
+			break;
+
+
+
+
+
+		// North south straight transitions
+		case NS_S_G_SEN:
+			next_state = NS_S_G;
+			// Next to go to the ped states if input is detected
+			break;
+
+		case NS_S_G_P_X:
+			next_state = NS_S_G_P_F;
+			break;
+
+		case NS_S_G_P_F:
+			next_state = NS_S_Y;
 			break;
 
 		case NS_S_G:
@@ -107,27 +128,43 @@ void changeTrafficState_peak(ic_state_data_t * state_data, traffic_state_t * pre
 			next_state = ALL_RED;
 			break;
 
-		case EW_R_G:
-			next_state = EW_R_Y;
+		// East west straight transitions
+		case EW_S_G_SEN:
+			next_state = EW_S_G;
+			// Next to go to the ped states if input is detected
 			break;
 
-		case EW_R_Y:
-			next_state = ALL_RED;
+		case EW_S_G_P_X:
+			next_state = EW_S_G_P_F;
+			break;
+		
+		case EW_S_G_P_F:
+			next_state = EW_S_G;
 			break;
 
 		case EW_S_G:
 			next_state = EW_S_Y;
 			break;
-
+		
 		case EW_S_Y:
 			next_state = ALL_RED;
 			break;
-
+		
+		// North south right transitions
 		case NS_R_G:
 			next_state = NS_R_Y;
 			break;
 
 		case NS_R_Y:
+			next_state = ALL_RED;
+			break;
+
+		// East west right transitions
+		case EW_R_G:
+			next_state = EW_R_Y;
+			break;
+
+		case EW_R_Y:
 			next_state = ALL_RED;
 			break;
 
@@ -223,6 +260,9 @@ void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer){
 	else if(state == ALL_RED){
 		duration = TIME_TRAFFIC_ALL_RED;
 	}
+	else if( state == NS_S_G_SEN || state == EW_S_G_SEN) {
+		duration = TIME_TRAFFIC_STRAIGHT_SEN;
+	}
 	else if(state == NS_S_G || state == EW_S_G ){
 		duration = TIME_TRAFFIC_STRAIGHT;
 	}
@@ -294,6 +334,18 @@ void printState(traffic_state_t state){
 			printf("\tState: %d [FAULT]\n", state);
 			break;
 
+		case NS_S_G_SEN:
+			printf("\tState: %d [NS_S_G_SEN]\n", state);
+			break;
+
+		case NS_S_G_P_X:
+			printf("\tState: %d [NS_S_G_P_X]\n", state);
+			break;
+
+		case NS_S_G_P_F:
+			printf("\tState: %d [NS_S_G_P_F]\n", state);
+			break;
+
 		case NS_S_G:
 			printf("\tState: %d [NS_S_G]\n", state);
 			break;
@@ -308,6 +360,18 @@ void printState(traffic_state_t state){
 
 		case EW_R_Y:
 			printf("\tState: %d [EW_R_Y]\n", state);
+			break;
+
+		case EW_S_G_SEN:
+			printf("\tState: %d [EW_S_G_SEN]\n", state);
+			break;
+
+		case EW_S_G_P_X:
+			printf("\tState: %d [EW_S_G_P_X]\n", state);
+			break;
+
+		case EW_S_G_P_F:
+			printf("\tState: %d [EW_S_G_P_F]\n", state);
 			break;
 
 		case EW_S_G:
