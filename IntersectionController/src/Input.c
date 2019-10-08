@@ -156,7 +156,7 @@ int readKeypad( uintptr_t gpio1_base){
 		 //printf("word=%u\n",word);
 		 key = DecodeKeyValue(word);
 
-		 printf("Interrupt count = %i\n", ISR_area_data.count_thread);
+		 //printf("Interrupt count = %i\n", ISR_area_data.count_thread);
 	}
 
 	return key;
@@ -189,10 +189,14 @@ const struct sigevent* Inthandler( void* area, int id )
 
 void * inputThread(void * data){
 
-	printf("inputThread\n");
-	input_data_t * input_data = (input_data_t*) data;
+	printf("inputThread()\n");
+	traffic_input_thread_data_t * input_thread_data = (traffic_input_thread_data_t*) data;
 
+	traffic_input_data_t * input_data = input_thread_data->input_data;
+	int change_state_channel_id = input_thread_data->change_state_channel_id; // Create a communications channel
+	int coid = ConnectAttach(ND_LOCAL_NODE, 0, change_state_channel_id, _NTO_SIDE_CHANNEL, 0);
 
+	int pulse_code = NULL_PULSE;
 			// gain access to device registers for "Control Module" and "GPIO1"
 	  uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
 	  uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE , AM335X_GPIO1_BASE);
@@ -278,6 +282,7 @@ void * inputThread(void * data){
 		printf( "Main entering loop and will call InterruptWait\n");
 
 
+
 		for(;;)
 		{
 			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
@@ -291,22 +296,28 @@ void * inputThread(void * data){
 			switch(val)
 			{
 				case NS_STR:
-					input_data->ns_str = ON;
-					break;
-				case NS_R:
-					input_data->ns_r = ON;
-					break;
-				case NS_P:
-					input_data->ns_p = ON;
+					input_data->input_flags.ns_str = ON;
+					pulse_code = NS_STR_INPUT_PULSE;
 					break;
 				case EW_STR:
-					input_data->ew_str = ON;
+					input_data->input_flags.ew_str = ON;
+					pulse_code = EW_STR_INPUT_PULSE;
+					break;
+				case NS_R:
+					input_data->input_flags.ns_r = ON;
+					pulse_code = NS_R_INPUT_PULSE;
 					break;
 				case EW_R:
-					input_data->ew_r = ON;
+					input_data->input_flags.ew_r = ON;
+					pulse_code = EW_R_INPUT_PULSE;
+					break;
+				case NS_P:
+					input_data->input_flags.ns_p = ON;
+					pulse_code = NS_P_INPUT_PULSE;
 					break;
 				case EW_P:
-					input_data->ew_p = ON;
+					input_data->input_flags.ew_p = ON;
+					pulse_code = EW_P_INPUT_PULSE;
 					break;
 				default:
 					break;
@@ -314,53 +325,9 @@ void * inputThread(void * data){
 			}
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
-			// North South Straight
-			if(input_data->ns_str == ON){
-				printf("\nNS_STR = ON\n");
-			}
-			else{
-				printf("\nNS_STR = OFF\n");
-			}
 
-			// North South Right Turn
-			if(input_data->ns_r == ON){
-				printf("NS_R = ON\n");
-			}
-			else{
-				printf("\nNS_STR = OFF\n");
-			}
-
-			// North South Pedestrian
-			if(input_data->ns_p == ON){
-				printf("NS_P = ON\n");
-			}
-			else{
-				printf("\nNS_STR = OFF\n");
-			}
-
-			// East West Straight
-			if(input_data->ew_str == ON){
-				printf("EW_STR = ON\n");
-			}
-			else{
-				printf("\nNS_STR = OFF\n");
-			}
-
-			// East West Right Turn
-			if(input_data->ew_r == ON){
-				printf("EW_R = ON\n");
-			}
-			else{
-				printf("\nNS_STR = OFF\n");
-			}
-
-			// East West Pedestrian
-			if(input_data->ew_p == ON){
-				printf("EW_P = ON\n\n");
-			}
-			else{
-				printf("\nNS_STR = OFF\n");
-			}
+			MsgSendPulse(coid,PULSE_PRIORITY,pulse_code,0);
+			//printInputFlags(input_data);
 
 
 			//sched_yield();
@@ -368,4 +335,60 @@ void * inputThread(void * data){
 
 		 munmap_device_io(control_module, AM335X_CONTROL_MODULE_SIZE);
 	   }
+}
+
+void printInputFlags(traffic_input_data_t * input_data){
+
+	traffic_input_flags_t input_flags;
+
+	pthread_rwlock_rdlock( &input_data->rwlock_input );
+		memcpy(&input_flags, &input_data->input_flags, sizeof(input_flags));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+	// North South Straight
+	if(input_flags.ns_str == ON){
+		printf("\nNS_STR = ON\n");
+	}
+	else{
+		printf("\nNS_STR = OFF\n");
+	}
+
+	// East West Straight
+	if(input_flags.ew_str == ON){
+		printf("\nEW_STR = ON\n");
+	}
+	else{
+		printf("\nEW_STR = OFF\n");
+	}
+
+	// North South Right Turn
+	if(input_flags.ns_r == ON){
+		printf("\nNS_R = ON\n");
+	}
+	else{
+		printf("\nNS_R = OFF\n");
+	}
+
+	// East West Right Turn
+	if(input_flags.ew_r == ON){
+		printf("\nEW_R = ON\n");
+	}
+	else{
+		printf("\nEW_R = OFF\n");
+	}
+
+	// North South Pedestrian
+	if(input_flags.ns_p == ON){
+		printf("\nNS_P = ON\n");
+	}
+	else{
+		printf("\nNS_P = OFF\n");
+	}
+
+	// East West Pedestrian
+	if(input_flags.ew_p == ON){
+		printf("\nEW_P = ON\n\n");
+	}
+	else{
+		printf("\nEW_P = OFF\n");
+	}
 }

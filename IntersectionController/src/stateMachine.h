@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
@@ -14,42 +14,38 @@
 #include <traffic_types.h>
 
 #define TIME_TRAFFIC_INITIAL 1
-#define TIME_TRAFFIC_STRAIGHT_SEN 5
-#define TIME_TRAFFIC_STRAIGHT 5
+#define TIME_TRAFFIC_STRAIGHT 10 //NEVER LESS THAN 10
 #define TIME_TRAFFIC_TURN 3
 #define TIME_TRAFFIC_YELLOW 1
 #define TIME_TRAFFIC_ALL_RED 1
 #define TIME_TRAFFIC_NONE 0
 
+#define TIME_PED_CROSS 3
+#define TIME_PED_FLASHING 2
+#define TIME_PED_TIME_OUT 4
+
 #define TIME_PED_GREEN 30
 #define TIME_PED_YELLOW 30
 
-#define MY_PULSE_CODE _PULSE_CODE_MINAVAIL
 
-typedef union {
-	struct _pulse pulse;
-} my_message_t;
 
-struct sigevent event;
+struct sigevent state_timer_event;
+struct sigevent ped_timer_event;
 
 timer_t state_timer_id;
 timer_t ped_timer_id;
 
 struct itimerspec itime_state_timer;
-struct itimerspec itime_ped_timer;
+struct itimerspec itime_ped_timer; // used for ped/ped sense
 
-// timer_gettime() use this to check the value of the timer for peds
-int chid;
-int rcvid;
-int val;
 
 
 traffic_mode_t mode;
 
 void initiliseTimer();
-void changeTrafficState_peak(traffic_state_data_t * statedata, traffic_state_t * previous_state, input_data_t * input_data);
-void changeTrafficState_offPeak(traffic_state_data_t * statedata, traffic_state_t * previous_state, input_data_t * input_data);
-void updateStateTimer(traffic_state_t state, struct itimerspec * statetimer);
+traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_flags_t * input_data);
+traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_flags_t * input_data);
+void updateTimers(traffic_state_t current_state);
 void * trafficStateMachine(void * data);
 
 

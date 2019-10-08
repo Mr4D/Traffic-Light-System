@@ -10,6 +10,8 @@
 
 int main(void) {
 
+	int change_state_channel_id = ChannelCreate(0);
+
 	traffic_state_data_t traffic_state_data = {
 
 		INITIAL, //change to INITIAL
@@ -26,14 +28,14 @@ int main(void) {
 		PTHREAD_COND_INITIALIZER
 	};
 
-	input_data_t input_data = {
-			OFF,
-			OFF,
-			OFF,
-			OFF,
-			OFF,
-			OFF,
+	traffic_input_data_t input_data = {
+			{OFF, OFF, OFF,	OFF, OFF, OFF},
 			PTHREAD_RWLOCK_INITIALIZER
+	};
+
+	traffic_input_thread_data_t input_thread_data = {
+			&input_data,
+			change_state_channel_id
 	};
 
 	ic_state_data_t ic_state_data = {
@@ -41,37 +43,36 @@ int main(void) {
 			&rail_state_data
 	};
 
-	state_machine_data_t state_machine_data = {
+	traffic_state_machine_thread_data_t state_machine_thread_data = {
 			&input_data,
-			&ic_state_data
+			&ic_state_data,
+			change_state_channel_id
 	};
 
 
 	mode = PEAK;
 
 
-	initiliseTimer();
-
 	pthread_t t_input;
-	pthread_t traffic_state_machine;
+	pthread_t t_traffic_state_machine;
 	pthread_t t_output;
 
 	// messaging threads
-	pthread_t critical_client_channel;
-	pthread_t critical_server_channel;
+	pthread_t t_critical_client_channel;
+	pthread_t t_critical_server_channel;
 
-	pthread_create(&t_input, NULL, &inputThread, &input_data);
-	pthread_create(&traffic_state_machine, NULL, &trafficStateMachine, &state_machine_data);
-	pthread_create(&t_output, NULL, LCD_Control, &ic_state_data);
-	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
+	pthread_create(&t_input, NULL, &inputThread, &input_thread_data);
+	pthread_create(&t_traffic_state_machine, NULL, &trafficStateMachine, &state_machine_thread_data);
+	//pthread_create(&t_output, NULL, LCD_Control, &ic_state_data);
 
-	pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
+	pthread_create(&t_critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
+	pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
 
 	pthread_join(t_input, NULL);
-	pthread_join(traffic_state_machine, NULL);
-	pthread_join(t_output, NULL);
-	pthread_join(critical_client_channel, NULL);
-	pthread_join(critical_server_channel, NULL);
+	pthread_join(t_traffic_state_machine, NULL);
+	//pthread_join(t_output, NULL);
+	pthread_join(t_critical_client_channel, NULL);
+	pthread_join(t_critical_server_channel, NULL);
 
 
 

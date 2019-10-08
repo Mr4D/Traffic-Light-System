@@ -358,7 +358,7 @@ void * LCD_Control(void * data){
 				writeLCD(1,0,L2,filep);
 				break;
 
-			case EW_S_G_P_SEN:
+			case EW_S_G_SEN:
 				L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = '-'; L1[15] = 'G'; L1[17] = 'G'; L1[19] = 'R';
 				if(railOutputState == TRAIN)
 					L1[13] = 'R';

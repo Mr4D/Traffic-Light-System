@@ -14,11 +14,14 @@ int main(void) {
 		PTHREAD_COND_INITIALIZER
 	};
 
-	pthread_t critical_client_channel;
+	pthread_t t_critical_client_channel;
+	pthread_t t_critical_server_channel;
 
-	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &rcc_state_data);
+	pthread_create(&t_critical_client_channel, NULL, &critical_client_channel_thread, &rcc_state_data);
+	pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &rcc_state_data);
 
-	pthread_join(critical_client_channel, NULL);
+	pthread_join(t_critical_client_channel, NULL);
+	pthread_join(t_critical_server_channel, NULL);
 
 	return EXIT_SUCCESS;
 }

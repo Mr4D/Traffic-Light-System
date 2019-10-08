@@ -16,6 +16,6 @@
 
 
 void * critical_client_channel_thread(void * data);
-
+void * critical_server_channel_thread(void * data);
 
 

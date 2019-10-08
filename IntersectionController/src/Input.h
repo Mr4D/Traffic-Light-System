@@ -1,7 +1,8 @@
-	#pragma once
+#pragma once
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <pthread.h>
 #include <hw/inout.h>      // for in32() and out32();
 #include <sys/mman.h>      // for mmap_device_io();
@@ -9,6 +10,8 @@
 #include <sys/neutrino.h>  // for ThreadCtl( _NTO_TCTL_IO_PRIV , NULL)
 #include <sched.h>
 #include <sys/procmgr.h>
+
+#include <sys/netmgr.h>
 
 #include <traffic_types.h>
 
@@ -62,7 +65,7 @@
 #define SLEW_FAST    0x00
 #define SLEW_SLOW    0x01
 
-
+// KEYS
 #define	NS_STR 1
 #define	NS_R   2
 #define	NS_P   3
@@ -109,3 +112,5 @@ int DecodeKeyValue(uint32_t word);
 int readKeypad( uintptr_t gpio1_base);
 const struct sigevent* Inthandler( void* area, int id );
 void * inputThread(void * data);
+
+void printInputFlags(traffic_input_data_t * input_data);
