@@ -80,14 +80,6 @@ typedef enum {
 	NO_TRAIN
 } rail_state_t;
 
-/* Peak/offpeak superstate for intersection */
-// typedef enum {
-// 	ALL_RED_P,
-// 	NS_P_G,
-// 	NS_P_Y,
-// 	EW_P_G,
-// 	EW_P_Y,
-// } ped_state_t;
 
 typedef enum {
     PEAK,
