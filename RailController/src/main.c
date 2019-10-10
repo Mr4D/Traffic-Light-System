@@ -15,6 +15,7 @@ int main(void) {
 		rail_state_data_t rail_state_data = {
 			NO_TRAIN,
 			false,
+			false,
 			PTHREAD_MUTEX_INITIALIZER,
 			PTHREAD_COND_INITIALIZER
 		};

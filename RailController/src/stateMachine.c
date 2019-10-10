@@ -48,7 +48,8 @@ void * railStateMachine(void * data) {
 		pthread_mutex_lock(&state_data->mutex_state);
 			state_data->current_state = current_state;
 
-			state_data->data_ready = true;
+			state_data->data_ready_msg = true;
+			state_data->data_ready_output = true;
 			pthread_cond_broadcast(&state_data->cond_state_changed);
 		pthread_mutex_unlock(&state_data->mutex_state);
 

@@ -238,13 +238,13 @@ void * LCD_Control(void * data){
 		// get rail state
 		pthread_mutex_lock(&rail_state_data->mutex_state);
 
-		while (!rail_state_data->data_ready) {
+		while (!rail_state_data->data_ready_output) {
 			pthread_cond_wait(&rail_state_data->cond_state_changed, &rail_state_data->mutex_state);
 		}
 
 			railOutputState = rail_state_data->current_state;
 
-			rail_state_data->data_ready = false;
+			rail_state_data->data_ready_output = false;
 		pthread_mutex_unlock(&rail_state_data->mutex_state);
 
 

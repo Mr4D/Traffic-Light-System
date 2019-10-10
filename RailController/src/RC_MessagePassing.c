@@ -33,19 +33,19 @@ void * critical_client_channel_thread(void * data) {
 	while(1){
 		pthread_mutex_lock(&state_data->mutex_state);
 
-			while (!state_data->data_ready){
+			while (!state_data->data_ready_msg){
 				pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
 			}
 
 			msg.state.rail_state = state_data->current_state;
 
-			state_data->data_ready = false;
+			state_data->data_ready_msg = false;
 			pthread_cond_signal(&state_data->cond_state_changed);
 		pthread_mutex_unlock(&state_data->mutex_state);
 
 		printf("data consumed\n");
 
-		printf("Client (ID:%d), sending data packet with the state value: %d \n", msg.client_id, msg.state.traffic_state);
+		printf("Client (ID:%d), sending data packet with the state value: %d \n", msg.client_id, msg.state.rail_state);
 		fflush(stdout);
 		if (MsgSend(server_coid, &msg, sizeof(msg), &reply, sizeof(reply)) == -1) {
 			printf(" Error data '%d' NOT sent to server\n", msg.state.traffic_state);

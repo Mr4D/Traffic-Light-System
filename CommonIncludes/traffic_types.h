@@ -112,11 +112,23 @@ typedef struct {
 
 	rail_state_t current_state;	
 
-	bool data_ready;
+	bool data_ready_msg;
+	bool data_ready_output;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
 } rail_state_data_t;
+
+/* Struct for r/w locking of rail states*/
+typedef struct {
+
+	rail_state_t current_state;	
+
+	bool data_ready;
+	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
+
+} rcc_state_data_t;
 
 /* Struct for r/w locking of ped states*/
 // typedef struct {
@@ -140,10 +152,6 @@ typedef struct {
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
 } tcc_state_data_t;
-
-/* Rail doesn't consider traffic situation, hence rcc only uses rail state data.*/
-typedef rail_state_data_t rcc_state_data_t;
-
 
 typedef union {
 	traffic_state_t traffic_state;
