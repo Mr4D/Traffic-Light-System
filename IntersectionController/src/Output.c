@@ -272,7 +272,6 @@ void * LCD_Control(void * data){
 			case INITIAL:
 				L1[3] = 'R'; L1[5] = 'R'; L1[7] = 'R'; L1[9] = 'R'; L1[13] = 'R'; L1[15] = 'R'; L1[17] = 'R'; L1[19] = 'R';
 				writeLCD(0,0,L1,filep);
-				end = clock();
 				L2[3] = 'R'; L2[5] = 'R'; L2[7] = 'R'; L2[9] = 'R'; L2[13] = 'R'; L2[15] = 'R'; L2[17] = 'R'; L2[19] = 'R';
 				writeLCD(1,0,L2,filep);
 				break;
