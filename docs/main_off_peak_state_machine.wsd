@@ -22,12 +22,13 @@ state TRAFFIC_SEQUENCE_OFF_PEAK {
     EW_R_Y ---> ALL_RED: Timer expiry
 
     ' Traffic state
-    ALL_RED ---> NS_S_G_SEN: sensor = ns_str\nOR\nsensor = ns_p
-    NS_S_G ---> NS_S_Y::Transition away from\nunused off-peak state
+    ALL_RED ---> NS_S_G_P_X: sensor = ns_str\nOR\nsensor = ns_p
+    NS_S_G ---> NS_S_Y:Transition away from\nunused off-peak state
     NS_S_Y ---> ALL_RED: Timer pulse
 
+    NS_S_G_SEN ---> NS_S_Y: Transition away from\nunused off-peak state
+
     ' NS ped states
-    NS_S_G_SEN ---> NS_S_G_P_X: NS_P or in queue
     NS_S_G_P_X ---> NS_S_G_P_F: 10s pulse
     NS_S_G_P_F ---> NS_S_Y: 5s pulse
 
@@ -45,7 +46,7 @@ ALL_RED: Safety state
 ALL_RED: Duration: 3 seconds
 ALL_RED: Next state is dependant on previous state
 
-NS_S_G_SEN: 30s timer start
+
 EW_S_G_SEN: 30s timer start
 
 NS_S_G_P_X: Duration 10 s
