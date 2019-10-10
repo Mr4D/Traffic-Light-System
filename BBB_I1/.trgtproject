@@ -19,10 +19,10 @@
             </connection>
             <qconnostype value="nto"/>
             <project>
-                <name value="BBB_02"/>
+                <name value="BBB_I1"/>
             </project>
             <qconnport value="8000"/>
-            <qconnguid value="1fa4731f-a119-4c8c-b44d-596142061d0d"/>
+            <qconnguid value="4ee89358-d36d-494a-90e5-fe077851c2ab"/>
             <targettmpdir value="/tmp"/>
             <qconnhostname value="192.168.201.51"/>
         </item>

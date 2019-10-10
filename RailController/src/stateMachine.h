@@ -14,6 +14,6 @@
 #include <traffic_types.h>
 
 void * railStateMachine(void * data);
-void printState(traffic_state_t state);
+void printState(rail_state_t state);
 
 

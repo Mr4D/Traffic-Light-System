@@ -65,14 +65,6 @@
 #define SLEW_FAST    0x00
 #define SLEW_SLOW    0x01
 
-// KEYS
-#define	NS_STR 1
-#define	NS_R   2
-#define	NS_P   3
-#define	EW_STR 5
-#define	EW_R   6
-#define	EW_P   7
-
 
 typedef union _CONF_MODULE_PIN_STRUCT   // See TRM Page 1420
 {

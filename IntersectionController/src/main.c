@@ -63,14 +63,14 @@ int main(void) {
 
 	pthread_create(&t_input, NULL, &inputThread, &input_thread_data);
 	pthread_create(&t_traffic_state_machine, NULL, &trafficStateMachine, &state_machine_thread_data);
-	//pthread_create(&t_output, NULL, LCD_Control, &ic_state_data);
+	pthread_create(&t_output, NULL, LCD_Control, &ic_state_data);
 
 	pthread_create(&t_critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
 	pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
 
 	pthread_join(t_input, NULL);
 	pthread_join(t_traffic_state_machine, NULL);
-	//pthread_join(t_output, NULL);
+	pthread_join(t_output, NULL);
 	pthread_join(t_critical_client_channel, NULL);
 	pthread_join(t_critical_server_channel, NULL);
 
