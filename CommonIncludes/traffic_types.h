@@ -39,6 +39,14 @@
 
 #define PULSE_PRIORITY 10
 
+// KEYS
+#define	NS_STR 1
+#define	NS_R   2
+#define	NS_P   3
+#define	EW_STR 5
+#define	EW_R   6
+#define	EW_P   7
+
 
 /* Boolean typedef */
 typedef enum {

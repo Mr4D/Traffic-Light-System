@@ -200,6 +200,7 @@ traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffi
 	printf("changeTrafficState_offpeak\n");
 
 	traffic_state_t next_state = INITIAL;
+	int input;
 
 	switch(current_state) {
 
@@ -208,26 +209,30 @@ traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffi
 			break;
 
 		case ALL_RED:
-			// do this
-			if ((previous_state == INITIAL) || (previous_state == NS_R_Y)) {
-				next_state = NS_S_G_SEN;
+
+			if (input == NS_STR || input == NS_P) {
+				next_state = NS_S_G_P_X;
 			}
-			else if (previous_state == NS_S_Y) {
+			else if (input == NS_R) {
+				next_state = NS_R_G;
+			} 
+			else if (input == EW_R) {
 				next_state = EW_R_G;
 			}
-			else if (previous_state == EW_R_Y) {
+			else if (input == EW_STR || input == EW_P) {
 				next_state = EW_S_G_SEN;
 			}
-			else if (previous_state == EW_S_Y) {
-				next_state = NS_R_G;
+			else {
+				next_state = EW_S_G_SEN;
 			}
 			break;
 
-		case FAULT:
-
+		// NS Straight state transitions
+		case NS_S_G_P_X:
+			next_state = NS_S_G_P_F;
 			break;
 
-		case NS_S_G:
+		case NS_S_G_P_F:
 			next_state = NS_S_Y;
 			break;
 
@@ -235,6 +240,7 @@ traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffi
 			next_state = ALL_RED;
 			break;
 
+		// EW Right turn state transitions
 		case EW_R_G:
 			next_state = EW_R_Y;
 			break;
@@ -243,14 +249,7 @@ traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffi
 			next_state = ALL_RED;
 			break;
 
-		case EW_S_G:
-			next_state = EW_S_Y;
-			break;
-
-		case EW_S_Y:
-			next_state = ALL_RED;
-			break;
-
+		// NS Right turn transitions
 		case NS_R_G:
 			next_state = NS_R_Y;
 			break;
@@ -259,6 +258,49 @@ traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffi
 			next_state = ALL_RED;
 			break;
 
+		// EW Straight state transitions
+		case EW_S_G_SEN:
+
+			if (input == EW_P) {
+				next_state = EW_S_G_P_X;
+			} 
+			else if ( input == NS_STR || input == NS_R || input == NS_P || input == EW_R ) {
+				next_state = EW_S_Y;
+			}
+			else {
+				next_state = EW_S_G_SEN;	// Go back when no sensors and timer done
+			}
+
+			break;
+
+		case EW_S_G_P_X:
+			next_state = EW_S_G_P_F;
+			break;
+		
+		case EW_S_G_P_F:
+			next_state = EW_S_G_SEN;
+			break;
+		
+		case EW_S_Y:
+			next_state = ALL_RED;
+			break;
+		
+		case FAULT:
+
+			break;
+
+		// Get away from unused states in off-peak
+		case NS_S_G_SEN:
+				next_state = NS_S_Y;
+			break;
+		case NS_S_G:
+				next_state = NS_S_Y;
+			break;
+		case EW_S_G:
+				next_state = EW_S_Y;
+			break;
+
+		// Default state
 		default:
 			next_state = FAULT;
 			break;
@@ -266,8 +308,6 @@ traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffi
 
 	return next_state;
 }
-
-
 
 
 void updateTimers(traffic_state_t current_state){
