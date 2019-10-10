@@ -211,11 +211,9 @@ void * LCD_Control(void * data){
 	int file;
 	int * filep = &file;
 
-	char L1[21] = 	{'B', 'O', 'O', 'M', ' ', 'G', 'A', 'T', 'E', 'S', ' ', ' ' ,'=', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
-	char L2[21] = 	{'P', 'E', 'D', 'E', 'S', 'T', 'R', 'I', 'A', 'N', ' ', ' ', '=', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
+	char L1[21] = 	{'B', 'O', 'O', 'M', ' ', 'G', 'A', 'T', 'E', 'S', ' ', '=' ,' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
+	char L2[21] = 	{'P', 'E', 'D', 'E', 'S', 'T', 'R', 'I', 'A', 'N', ' ', '=', ' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
 																				  //   13   14	 15   16   17   18	 19
-	char buffer[2];
-
 
 	rail_state_data_t * rail_state_data = (rail_state_data_t *) data;
 	rail_state_t	railOutputState;
@@ -253,18 +251,24 @@ void * LCD_Control(void * data){
 		switch(railOutputState)
 		{
 			case NO_TRAIN:
-				L1[13] = 'R';L1[14] = 'A';L1[15] = 'I';L1[16] = 'S';L1[17] = 'E';L1[18] = 'D';L2[19] = ' ';
-				L2[13] = 'O';L2[14] = 'P';L2[15] = 'E';L2[16] = 'N';L2[17] = 'E';L2[18] = 'D';L2[19] = ' ';
+				L1[12] = 'R';L1[13] = 'A';L1[14] = 'I';L1[15] = 'S';L1[16] = 'E';L1[17] = 'D';L2[18] = ' ';
+				L2[12] = 'O';L2[13] = 'P';L2[14] = 'E';L2[15] = 'N';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
+				writeLCD(0,0,L1,filep);
+				writeLCD(1,0,L2,filep);
 				break;
 
 			case TRAIN:
-				L1[13] = 'L';L1[14] = 'O';L1[15] = 'W';L1[16] = 'E';L1[17] = 'R';L1[18] = 'E';L2[19] = 'D';
-				L2[13] = 'C';L2[14] = 'L';L2[15] = 'O';L2[16] = 'S';L2[17] = 'E';L2[18] = 'D';L2[19] = ' ';
+				L1[12] = 'L';L1[13] = 'O';L1[14] = 'W';L1[15] = 'E';L1[16] = 'R';L1[17] = 'E';L2[18] = 'D';
+				L2[12] = 'C';L2[13] = 'L';L2[14] = 'O';L2[15] = 'S';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
+				writeLCD(0,0,L1,filep);
+				writeLCD(1,0,L2,filep);
 				break;
 
 			default:
-				L1[13] = 'L';L1[14] = 'O';L1[15] = 'W';L1[16] = 'E';L1[17] = 'R';L1[18] = 'E';L2[19] = 'D';
-				L2[13] = 'C';L2[14] = 'L';L2[15] = 'O';L2[16] = 'S';L2[17] = 'E';L2[18] = 'D';L2[19] = ' ';
+				L1[12] = 'L';L1[13] = 'O';L1[14] = 'W';L1[15] = 'E';L1[16] = 'R';L1[17] = 'E';L2[18] = 'D';
+				L2[12] = 'C';L2[13] = 'L';L2[14] = 'O';L2[15] = 'S';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
+				writeLCD(0,0,L1,filep);
+				writeLCD(1,0,L2,filep);
 				break;
 		}
 	}
