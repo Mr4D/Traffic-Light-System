@@ -55,9 +55,6 @@ void * railStateMachine(void * data) {
 		// Print state info
 		printState(state_data->current_state);
 
-
-
-
 		// wait for timer
 		bool change_state = false;
 		while(!change_state){
@@ -88,7 +85,7 @@ void * railStateMachine(void * data) {
 	return EXIT_SUCCESS;
 }
 
-void printState(traffic_state_t state){
+void printState(rail_state_t state){
 
 	switch(state) {
 
