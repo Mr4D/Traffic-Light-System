@@ -207,9 +207,6 @@ int writeLCD(int row, int col, char write[], int* filep)
 void * LCD_Control(void * data){
 	/* RUN THIS AS THREAD */
 
-	clock_t start,end;
-	double BBB_time_used;
-
 	int error;
 	int file;
 	int * filep = &file;
