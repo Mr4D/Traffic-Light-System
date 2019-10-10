@@ -21,7 +21,7 @@ int main(void) {
 		PTHREAD_COND_INITIALIZER
 	};
 
-	rail_state_data_t rail_state_data = {
+	rcc_state_data_t rail_state_data = {	// TODO: to update this data type
 		NO_TRAIN,
 		false,
 		PTHREAD_MUTEX_INITIALIZER,
