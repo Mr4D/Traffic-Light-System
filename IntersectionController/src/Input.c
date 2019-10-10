@@ -187,6 +187,77 @@ const struct sigevent* Inthandler( void* area, int id )
 	return (&p_ISR_data->pevent);
 }
 
+
+int readTrafficInputBuf(int * buf, int index){
+
+	int input_signal = -1;
+
+	if(index < TRAFFIC_INPUT_COUNT){
+		input_signal = buf[index];
+	}
+
+	return input_signal;
+}
+
+void writeTrafficInputBuf(int * buf, int * p_end_index, int input_signal) {
+
+	int end_index = *p_end_index;
+
+	if(end_index < TRAFFIC_INPUT_COUNT){
+		buf[end_index] = input_signal;
+
+		end_index++;
+		*p_end_index = end_index;
+	}
+}
+
+// if not found returns -1
+int findTrafficInputBuf(int * buf, int end_index, int traffic_input) {
+
+	int signal_index = -1;
+
+	for(int i = 0; i < end_index; i++){
+
+		if(buf[i] == traffic_input) {
+			signal_index = i;
+			break;
+		}
+	}
+
+	return signal_index;
+}
+
+void deleteTrafficInputBufCell(int * buf, int * p_end_index, int cell_val) {
+
+	int end_index = *p_end_index;
+	int delete_index = -1;
+
+	if((delete_index = findTrafficInputBuf(buf, end_index, cell_val)) != -1){
+
+		size_t size = sizeof(int) * (end_index-1);
+		memcpy(&buf[delete_index], &buf[delete_index+1], size);
+		end_index--;
+		*p_end_index = end_index;
+	}
+}
+
+void deleteTrafficInputBufCells(int * buf, int * p_end_index, int * cell_vals, int cell_vals_length){
+
+	for(int i = 0; i < cell_vals_length; i++){
+		deleteTrafficInputBufCell(buf, p_end_index, cell_vals[i]);
+	}
+
+}
+
+void printInputBuf(int * buf, int length){
+
+	for(int i = 0; i < length; i++){
+		printf("[%d] ", buf[i]);
+	}
+	printf("\n");
+
+}
+
 void * inputThread(void * data){
 
 	printf("inputThread()\n");
@@ -337,58 +408,3 @@ void * inputThread(void * data){
 	   }
 }
 
-void printInputFlags(traffic_input_data_t * input_data){
-
-	traffic_input_flags_t input_flags;
-
-	pthread_rwlock_rdlock( &input_data->rwlock_input );
-		memcpy(&input_flags, &input_data->input_flags, sizeof(input_flags));
-	pthread_rwlock_unlock( &input_data->rwlock_input );
-	// North South Straight
-	if(input_flags.ns_str == ON){
-		printf("\nNS_STR = ON\n");
-	}
-	else{
-		printf("\nNS_STR = OFF\n");
-	}
-
-	// East West Straight
-	if(input_flags.ew_str == ON){
-		printf("\nEW_STR = ON\n");
-	}
-	else{
-		printf("\nEW_STR = OFF\n");
-	}
-
-	// North South Right Turn
-	if(input_flags.ns_r == ON){
-		printf("\nNS_R = ON\n");
-	}
-	else{
-		printf("\nNS_R = OFF\n");
-	}
-
-	// East West Right Turn
-	if(input_flags.ew_r == ON){
-		printf("\nEW_R = ON\n");
-	}
-	else{
-		printf("\nEW_R = OFF\n");
-	}
-
-	// North South Pedestrian
-	if(input_flags.ns_p == ON){
-		printf("\nNS_P = ON\n");
-	}
-	else{
-		printf("\nNS_P = OFF\n");
-	}
-
-	// East West Pedestrian
-	if(input_flags.ew_p == ON){
-		printf("\nEW_P = ON\n\n");
-	}
-	else{
-		printf("\nEW_P = OFF\n");
-	}
-}

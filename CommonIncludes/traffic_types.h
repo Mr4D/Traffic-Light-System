@@ -219,3 +219,13 @@ typedef struct {
 	struct _pulse hdr;  // Our real data comes after this header
     char buf[BUF_SIZE]; // Message we send back to clients to tell them the messages was processed correctly.
 } msg_reply_t;
+
+
+#define TRAFFIC_INPUT_COUNT 6
+
+// Input Signal Buffer
+typedef struct {
+	int end_index;
+
+	int input_buffer[TRAFFIC_INPUT_COUNT];
+}traffic_input_buffer_t;
