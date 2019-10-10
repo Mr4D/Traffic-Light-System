@@ -12,7 +12,7 @@ int main(void) {
 
 	int change_state_channel_id = ChannelCreate(0);
 
-		rail_state_data_t rail_state_data = {
+	rail_crossing_state_data_t rail_state_data = {
 			NO_TRAIN,
 			false,
 			false,

@@ -2,7 +2,7 @@
 
 
 void * critical_client_channel_thread(void * data) {
-	rail_state_data_t * state_data = (traffic_state_data_t *) data;
+	rail_crossing_state_data_t * state_data = (traffic_state_data_t *) data;
 
 	msg_data_t msg;
 	msg_reply_t reply;
