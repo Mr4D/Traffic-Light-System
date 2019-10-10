@@ -1,4 +1,4 @@
-#include "Output.h"
+#include "output.h"
 
 /*
  * Revised I2C LCD writing.
@@ -211,24 +211,14 @@ void * LCD_Control(void * data){
 	int file;
 	int * filep = &file;
 
-	char L1[21] = {'B', 'o', 'o', 'm', '_', 'G', 'a', 't', 'e', ' ', '=', ' ' ,'=', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
-	char L2[21] = {'P', 'e', 'd', 'e', 's', 't', 'r', 'i', 'a', 'n', 's', ' ', '=', ' ', 'C', 'R', 'O', 'S', 'S', ' '};
-
+	char L1[21] = 	{'B', 'O', 'O', 'M', ' ', 'G', 'A', 'T', 'E', 'S', ' ', ' ' ,'=', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
+	char L2[21] = 	{'P', 'E', 'D', 'E', 'S', 'T', 'R', 'I', 'A', 'N', ' ', ' ', '=', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
+																				  //   13   14	 15   16   17   18	 19
 	char buffer[2];
 
-	ic_state_data_t * state_data = (ic_state_data_t*) data;
 
-
-	traffic_state_data_t * traffic_state_data = state_data->traffic_state_data;
-	rail_state_data_t * rail_state_data = state_data->rail_state_data;
-
-
-	//printf("State\n\tTraffic: %d\n\tRail   : %d\n\tPed    : %d\n\n", traffic_state, rail_state, ped_state);
-	traffic_state_t trafficOutputState;
+	rail_state_data_t * rail_state_data = (rail_state_data_t *) data;
 	rail_state_t	railOutputState;
-
-
-
 
 	error = openLCD(filep);
 
@@ -241,32 +231,41 @@ void * LCD_Control(void * data){
 	writeLCD(0,0,L1,filep);
 	writeLCD(1,0,L2,filep);
 
-	//td->data_ready_output = false;
-
 
 	while (1)
 	{
 
 
-		pthread_mutex_lock(&traffic_state_data->mutex_state);
-
-			while (!traffic_state_data->data_ready_output) {
-				pthread_cond_wait(&traffic_state_data->cond_state_changed, &traffic_state_data->mutex_state);
-			}
-
-			// get traffic state
-			trafficOutputState = traffic_state_data->current_state;
-
-			traffic_state_data->data_ready_output = false;
-		pthread_mutex_unlock(&traffic_state_data->mutex_state);
-
 
 		// get rail state
 		pthread_mutex_lock(&rail_state_data->mutex_state);
+
+		while (!rail_state_data->data_ready) {
+			pthread_cond_wait(&rail_state_data->cond_state_changed, &rail_state_data->mutex_state);
+		}
+
 			railOutputState = rail_state_data->current_state;
+
+			rail_state_data->data_ready = false;
 		pthread_mutex_unlock(&rail_state_data->mutex_state);
 
 
+		switch(railOutputState)
+		{
+			case NO_TRAIN:
+				L1[13] = 'R';L1[14] = 'A';L1[15] = 'I';L1[16] = 'S';L1[17] = 'E';L1[18] = 'D';L2[19] = ' ';
+				L2[13] = 'O';L2[14] = 'P';L2[15] = 'E';L2[16] = 'N';L2[17] = 'E';L2[18] = 'D';L2[19] = ' ';
+				break;
 
+			case TRAIN:
+				L1[13] = 'L';L1[14] = 'O';L1[15] = 'W';L1[16] = 'E';L1[17] = 'R';L1[18] = 'E';L2[19] = 'D';
+				L2[13] = 'C';L2[14] = 'L';L2[15] = 'O';L2[16] = 'S';L2[17] = 'E';L2[18] = 'D';L2[19] = ' ';
+				break;
+
+			default:
+				L1[13] = 'L';L1[14] = 'O';L1[15] = 'W';L1[16] = 'E';L1[17] = 'R';L1[18] = 'E';L2[19] = 'D';
+				L2[13] = 'C';L2[14] = 'L';L2[15] = 'O';L2[16] = 'S';L2[17] = 'E';L2[18] = 'D';L2[19] = ' ';
+				break;
+		}
 	}
 }
