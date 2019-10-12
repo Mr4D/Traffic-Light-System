@@ -215,7 +215,7 @@ void * LCD_Control(void * data){
 	char L2[21] = 	{'P', 'E', 'D', 'E', 'S', 'T', 'R', 'I', 'A', 'N', ' ', '=', ' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
 																				  //   13   14	 15   16   17   18	 19
 
-	rail_state_data_t * rail_state_data = (rail_state_data_t *) data;
+	rail_crossing_state_data_t * rail_state_data = (rail_crossing_state_data_t *) data;
 	rail_state_t	railOutputState;
 
 	error = openLCD(filep);

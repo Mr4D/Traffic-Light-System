@@ -2,7 +2,7 @@
 
 void * critical_client_channel_thread(void * data){
 
-	rcc_state_data_t * state_data = (rcc_state_data_t *) data;
+	rail_state_data_t * state_data = (rail_state_data_t *) data;
 
     msg_data_t msg;
     msg_reply_t reply;
@@ -62,7 +62,7 @@ void * critical_client_channel_thread(void * data){
 
 void * critical_server_channel_thread(void * data){
 
-	rcc_state_data_t * rcc_state_data = (rcc_state_data_t*) data;
+	rail_state_data_t * rcc_state_data = (rail_state_data_t*) data;
 
 	printf("critical_server_channel()\n");
 	name_attach_t * attach;

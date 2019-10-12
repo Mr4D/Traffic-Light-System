@@ -117,7 +117,7 @@ typedef struct {
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
-} rail_state_data_t;
+} rail_crossing_state_data_t;
 
 /* Struct for r/w locking of rail states*/
 typedef struct {
@@ -128,7 +128,7 @@ typedef struct {
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
-} rcc_state_data_t;
+} rail_state_data_t;
 
 /* Struct for r/w locking of ped states*/
 // typedef struct {
@@ -208,7 +208,7 @@ typedef struct {
 
 typedef struct {
 	rail_input_data_t * input_data;
-	rail_state_data_t * rail_state_data;
+	rail_crossing_state_data_t * rail_state_data;
 	int change_state_channel_id;
 } rail_state_machine_thread_data_t;
 

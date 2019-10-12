@@ -15,7 +15,7 @@ void * railStateMachine(void * data) {
 	rail_state_machine_thread_data_t * state_machine_thread_data = (rail_state_machine_thread_data_t*) data;
 
 	rail_input_data_t * input_data = state_machine_thread_data->input_data;
-	rail_state_data_t * state_data = state_machine_thread_data->rail_state_data;
+	rail_crossing_state_data_t * state_data = state_machine_thread_data->rail_state_data;
 
 
 	change_state_channel_id = state_machine_thread_data->change_state_channel_id; // Create a communications channel
