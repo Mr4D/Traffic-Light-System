@@ -219,7 +219,8 @@ void * LCD_Control(void * data){
 
 
 	traffic_state_data_t * traffic_state_data = state_data->traffic_state_data;
-	rail_state_data_t * rail_state_data = state_data->rail_state_data;
+
+	rail_state_data_t * rail_state_data = state_data->rail_state_data;				// TODO: read/write locks here
 
 
 	//printf("State\n\tTraffic: %d\n\tRail   : %d\n\tPed    : %d\n\n", traffic_state, rail_state, ped_state);

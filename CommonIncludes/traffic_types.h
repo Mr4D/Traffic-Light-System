@@ -126,7 +126,6 @@ typedef struct {
 
 	bool data_ready;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
 } rail_state_data_t;
 
