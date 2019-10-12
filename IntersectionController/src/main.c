@@ -25,7 +25,6 @@ int main(void) {
 	rail_state_data_t rail_state_data = {	// TODO: to update this data type
 		NO_TRAIN,
 		false,
-		false,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
 	};
