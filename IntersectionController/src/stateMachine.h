@@ -47,11 +47,12 @@ void updateTimers(traffic_state_t current_state);
 
 bool decideChangeStatePeak(struct _pulse * change_state_msg, traffic_state_t current_state);
 bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_buffer_t * input_queue);
-void clearInputPeak(traffic_input_buffer_t * input_queue, traffic_state_t state);
-void clearInputOffPeak(traffic_input_buffer_t * input_queue, traffic_state_t state);
+void clearInputPeak(traffic_input_data_t * input_data, traffic_state_t state);
+void clearInputOffPeak(traffic_input_data_t * input_data, traffic_state_t state);
 
 void * trafficStateMachine(void * data);
 
 
 void printState(traffic_state_t state);
+//void printInputBuf(int * buf, int length);
 

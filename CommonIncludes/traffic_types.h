@@ -178,7 +178,7 @@ typedef struct {
 }traffic_input_buffer_t;
 
 typedef struct {
-	traffic_input_buffer_t input_queue;
+	traffic_input_buffer_t * input_queue;
 	pthread_rwlock_t rwlock_input;
 } traffic_input_data_t;
 

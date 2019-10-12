@@ -105,11 +105,12 @@ int readKeypad( uintptr_t gpio1_base);
 const struct sigevent* Inthandler( void* area, int id );
 void * inputThread(void * data);
 
-int readTrafficInputBuf(int * buf, int index);
+int readTrafficInputBuf(traffic_input_buffer_t * buf);
 void writeTrafficInputBuf(int * buf, int * p_end_index, int input_signal);
 int findTrafficInputBuf(int * buf, int end_index, int traffic_input);
-void deleteTrafficInputBufCell(int * buf, int * p_end_index, int cell_val);
-void deleteTrafficInputBufCells(int * buf, int * p_end_index, int * cell_vals, int cell_vals_length);
+bool containsTrafficInputBuf(int * buf, int end_index, int traffic_input);
+void deleteTrafficInputBufCell(traffic_input_data_t * input_data, int cell_val);
+void deleteTrafficInputBufCells(traffic_input_data_t * input_data, int * cell_vals, int cell_vals_length);
 void printInputBuf(int * buf, int length);
 
 void printInputFlags(traffic_input_data_t * input_data);

@@ -188,18 +188,20 @@ const struct sigevent* Inthandler( void* area, int id )
 }
 
 
-int readTrafficInputBuf(int * buf, int index){
+int readTrafficInputBuf(traffic_input_buffer_t * buf){
 
 	int input_signal = -1;
 
-	if(index < TRAFFIC_INPUT_COUNT){
-		input_signal = buf[index];
+	if(buf->end_index > 0){
+		input_signal = buf->input_buffer[0];
 	}
 
 	return input_signal;
 }
 
 void writeTrafficInputBuf(int * buf, int * p_end_index, int input_signal) {
+
+	printf("write to buf: %d\n", input_signal);
 
 	int end_index = *p_end_index;
 
@@ -227,24 +229,46 @@ int findTrafficInputBuf(int * buf, int end_index, int traffic_input) {
 	return signal_index;
 }
 
-void deleteTrafficInputBufCell(int * buf, int * p_end_index, int cell_val) {
+bool containsTrafficInputBuf(int * buf, int end_index, int traffic_input) {
 
-	int end_index = *p_end_index;
-	int delete_index = -1;
+	bool found = false;
 
-	if((delete_index = findTrafficInputBuf(buf, end_index, cell_val)) != -1){
+	for(int i = 0; i < end_index; i++){
 
-		size_t size = sizeof(int) * (end_index-1);
-		memcpy(&buf[delete_index], &buf[delete_index+1], size);
-		end_index--;
-		*p_end_index = end_index;
+		if(buf[i] == traffic_input) {
+			found = true;
+			break;
+		}
 	}
+
+	return found;
 }
 
-void deleteTrafficInputBufCells(int * buf, int * p_end_index, int * cell_vals, int cell_vals_length){
+void deleteTrafficInputBufCell(traffic_input_data_t * input_data, int cell_val) {
+	printf("deleteCell()\n");
+	int delete_index = -1;
+
+	traffic_input_buffer_t input_queue;
+	pthread_rwlock_rdlock( &input_data->rwlock_input );
+		memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+
+	if((delete_index = findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, cell_val)) != -1){
+
+		size_t size = sizeof(int) * (input_queue.end_index-(delete_index+1));
+		memcpy(&input_queue.input_buffer[delete_index], &input_queue.input_buffer[delete_index+1], size);
+		input_queue.end_index--;
+	}
+
+	pthread_rwlock_wrlock( &input_data->rwlock_input );
+		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+}
+
+void deleteTrafficInputBufCells(traffic_input_data_t * input_data, int * cell_vals, int cell_vals_length){
 
 	for(int i = 0; i < cell_vals_length; i++){
-		deleteTrafficInputBufCell(buf, p_end_index, cell_vals[i]);
+		deleteTrafficInputBufCell(input_data, cell_vals[i]);
 	}
 
 }
@@ -367,23 +391,24 @@ void * inputThread(void * data){
 
 
 			pthread_rwlock_rdlock(&input_data->rwlock_input);
-				memcpy(&input_queue, &input_data->input_queue, sizeof(input_queue));
+				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
+			printf("mode: %d\n", mode);
 
 			bool sendpulse = false;
 			switch(val)
 			{
 				case NS_STR:
-					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_STR) && mode == OFF_PEAK){
+					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_STR) && mode == OFF_PEAK){
 						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_STR);
-
+						printf("after write input_queue.end_index: %d\n", input_queue.end_index);
 						pulse_code = NS_STR_INPUT_PULSE;
 						sendpulse = true;
 					}
 					break;
 				case EW_STR:
-					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_STR) && mode == OFF_PEAK){
+					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_STR) && mode == OFF_PEAK){
 						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_STR);
 
 						pulse_code = EW_STR_INPUT_PULSE;
@@ -391,7 +416,7 @@ void * inputThread(void * data){
 					}
 					break;
 				case NS_R:
-					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_R) && mode == OFF_PEAK){
+					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_R) && mode == OFF_PEAK){
 						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_R);
 
 						pulse_code = NS_R_INPUT_PULSE;
@@ -399,7 +424,7 @@ void * inputThread(void * data){
 					}
 					break;
 				case EW_R:
-					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_R) && mode == OFF_PEAK){
+					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_R) && mode == OFF_PEAK){
 						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_R);
 
 						pulse_code = EW_R_INPUT_PULSE;
@@ -407,7 +432,7 @@ void * inputThread(void * data){
 					}
 					break;
 				case NS_P:
-					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_P)){
+					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_P)){
 						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_P);
 
 						pulse_code = NS_P_INPUT_PULSE;
@@ -415,7 +440,7 @@ void * inputThread(void * data){
 					}
 					break;
 				case EW_P:
-					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_P)){
+					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_P)){
 						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_P);
 
 						pulse_code = EW_P_INPUT_PULSE;
@@ -429,13 +454,15 @@ void * inputThread(void * data){
 
 
 			pthread_rwlock_wrlock(&input_data->rwlock_input);
-				memcpy(&input_data->input_queue, &input_queue, sizeof(input_queue));
+				memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
+
+
+			printInputBuf(input_queue.input_buffer, input_queue.end_index);
 
 			if(sendpulse){
 				MsgSendPulse(coid,PULSE_PRIORITY,pulse_code,0);
 			}
-			//printInputFlags(input_data);
 
 
 			//sched_yield();

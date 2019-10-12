@@ -10,8 +10,15 @@
 
 int main(void) {
 
+
 	int change_state_channel_id = ChannelCreate(0);
-	traffic_mode_t mode = PEAK;
+	traffic_mode_t mode = OFF_PEAK;
+
+	traffic_input_buffer_t input_queue = {
+			0,
+			{0}
+	};
+
 
 	traffic_state_data_t traffic_state_data = {
 
@@ -30,7 +37,7 @@ int main(void) {
 	};
 
 	traffic_input_data_t input_data = {
-			{OFF},
+			&input_queue,
 			PTHREAD_RWLOCK_INITIALIZER
 	};
 
@@ -65,8 +72,8 @@ int main(void) {
 	pthread_create(&t_traffic_state_machine, NULL, &trafficStateMachine, &state_machine_thread_data);
 	pthread_create(&t_output, NULL, LCD_Control, &ic_state_data);
 
-	pthread_create(&t_critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
-	pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
+	//pthread_create(&t_critical_client_channel, NULL, &critical_client_channel_thread, &traffic_state_data);
+	//pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &rail_state_data);
 
 	pthread_join(t_input, NULL);
 	pthread_join(t_traffic_state_machine, NULL);
