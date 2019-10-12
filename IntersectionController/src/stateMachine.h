@@ -12,6 +12,7 @@
 #include <sys/neutrino.h>
 
 #include <traffic_types.h>
+#include <traffic_file_lib.h>
 
 #define TIME_TRAFFIC_INITIAL 1
 #define TIME_TRAFFIC_STRAIGHT 10 //NEVER LESS THAN 10
@@ -53,6 +54,6 @@ void clearInputOffPeak(traffic_input_data_t * input_data, traffic_state_t state)
 void * trafficStateMachine(void * data);
 
 
-void printState(traffic_state_t state);
+void stateToString(traffic_state_t state, char * state_str);
 //void printInputBuf(int * buf, int length);
 

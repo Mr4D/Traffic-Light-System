@@ -7,9 +7,11 @@
 #include "Input.h"
 #include "Output.h"
 #include "IC_MessagePassing.h"
+#include <traffic_file_lib.h>
 
 int main(void) {
 
+	openTrafficLogFile("name.log");
 
 	int change_state_channel_id = ChannelCreate(0);
 	traffic_mode_t mode = OFF_PEAK;
