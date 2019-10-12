@@ -167,23 +167,25 @@ typedef enum {ON, OFF} InputSignal;
 
 #define INPUT_COUNT 6
 
+
+#define TRAFFIC_INPUT_COUNT 6
+
+// Input Signal Buffer
 typedef struct {
-	InputSignal ns_str;
-	InputSignal ew_str;
-	InputSignal ns_r;
-	InputSignal ew_r;
-	InputSignal ns_p;
-	InputSignal ew_p;
-} traffic_input_flags_t;
+	int end_index;
+
+	int input_buffer[TRAFFIC_INPUT_COUNT];
+}traffic_input_buffer_t;
 
 typedef struct {
-	traffic_input_flags_t input_flags;
+	traffic_input_buffer_t input_queue;
 	pthread_rwlock_t rwlock_input;
 } traffic_input_data_t;
 
 typedef struct {
 	traffic_input_data_t * input_data;
 	int change_state_channel_id;
+	traffic_mode_t * mode;
 } traffic_input_thread_data_t;
 
 
@@ -201,6 +203,7 @@ typedef struct {
 	traffic_input_data_t * input_data;
 	ic_state_data_t * ic_state_data;
 	int change_state_channel_id;
+	traffic_mode_t * mode;
 } traffic_state_machine_thread_data_t;
 
 typedef struct {
@@ -221,11 +224,4 @@ typedef struct {
 } msg_reply_t;
 
 
-#define TRAFFIC_INPUT_COUNT 6
 
-// Input Signal Buffer
-typedef struct {
-	int end_index;
-
-	int input_buffer[TRAFFIC_INPUT_COUNT];
-}traffic_input_buffer_t;

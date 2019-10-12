@@ -11,6 +11,7 @@
 int main(void) {
 
 	int change_state_channel_id = ChannelCreate(0);
+	traffic_mode_t mode = PEAK;
 
 	traffic_state_data_t traffic_state_data = {
 
@@ -24,33 +25,33 @@ int main(void) {
 	rail_state_data_t rail_state_data = {
 		NO_TRAIN,
 		false,
+		false,
 		PTHREAD_MUTEX_INITIALIZER,
 		PTHREAD_COND_INITIALIZER
 	};
 
 	traffic_input_data_t input_data = {
-			{OFF, OFF, OFF,	OFF, OFF, OFF},
+			{OFF},
 			PTHREAD_RWLOCK_INITIALIZER
 	};
 
 	traffic_input_thread_data_t input_thread_data = {
 			&input_data,
-			change_state_channel_id
+			change_state_channel_id,
+			&mode
 	};
 
 	ic_state_data_t ic_state_data = {
 			&traffic_state_data,
-			&rail_state_data
+			&rail_state_data,
 	};
 
 	traffic_state_machine_thread_data_t state_machine_thread_data = {
 			&input_data,
 			&ic_state_data,
-			change_state_channel_id
+			change_state_channel_id,
+			&mode
 	};
-
-
-	mode = PEAK;
 
 
 	pthread_t t_input;

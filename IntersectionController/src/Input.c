@@ -262,6 +262,9 @@ void * inputThread(void * data){
 
 	printf("inputThread()\n");
 	traffic_input_thread_data_t * input_thread_data = (traffic_input_thread_data_t*) data;
+	int input_buf[TRAFFIC_INPUT_COUNT];
+	traffic_mode_t mode = *input_thread_data->mode;
+	traffic_input_buffer_t input_queue;
 
 	traffic_input_data_t * input_data = input_thread_data->input_data;
 	int change_state_channel_id = input_thread_data->change_state_channel_id; // Create a communications channel
@@ -363,41 +366,75 @@ void * inputThread(void * data){
 			int val = readKeypad( gpio1_base);
 
 
-			pthread_rwlock_wrlock(&input_data->rwlock_input);
+			pthread_rwlock_rdlock(&input_data->rwlock_input);
+				memcpy(&input_queue, &input_data->input_queue, sizeof(input_queue));
+			pthread_rwlock_unlock(&input_data->rwlock_input);
+
+
+			bool sendpulse = false;
 			switch(val)
 			{
 				case NS_STR:
-					input_data->input_flags.ns_str = ON;
-					pulse_code = NS_STR_INPUT_PULSE;
+					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_STR) && mode == OFF_PEAK){
+						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_STR);
+
+						pulse_code = NS_STR_INPUT_PULSE;
+						sendpulse = true;
+					}
 					break;
 				case EW_STR:
-					input_data->input_flags.ew_str = ON;
-					pulse_code = EW_STR_INPUT_PULSE;
+					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_STR) && mode == OFF_PEAK){
+						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_STR);
+
+						pulse_code = EW_STR_INPUT_PULSE;
+						sendpulse = true;
+					}
 					break;
 				case NS_R:
-					input_data->input_flags.ns_r = ON;
-					pulse_code = NS_R_INPUT_PULSE;
+					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_R) && mode == OFF_PEAK){
+						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_R);
+
+						pulse_code = NS_R_INPUT_PULSE;
+						sendpulse = true;
+					}
 					break;
 				case EW_R:
-					input_data->input_flags.ew_r = ON;
-					pulse_code = EW_R_INPUT_PULSE;
+					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_R) && mode == OFF_PEAK){
+						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_R);
+
+						pulse_code = EW_R_INPUT_PULSE;
+						sendpulse = true;
+					}
 					break;
 				case NS_P:
-					input_data->input_flags.ns_p = ON;
-					pulse_code = NS_P_INPUT_PULSE;
+					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_P)){
+						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_P);
+
+						pulse_code = NS_P_INPUT_PULSE;
+						sendpulse = true;
+					}
 					break;
 				case EW_P:
-					input_data->input_flags.ew_p = ON;
-					pulse_code = EW_P_INPUT_PULSE;
+					if(findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_P)){
+						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_P);
+
+						pulse_code = EW_P_INPUT_PULSE;
+						sendpulse = true;
+					}
 					break;
 				default:
 					break;
 
 			}
+
+
+			pthread_rwlock_wrlock(&input_data->rwlock_input);
+				memcpy(&input_data->input_queue, &input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
-
-			MsgSendPulse(coid,PULSE_PRIORITY,pulse_code,0);
+			if(sendpulse){
+				MsgSendPulse(coid,PULSE_PRIORITY,pulse_code,0);
+			}
 			//printInputFlags(input_data);
 
 

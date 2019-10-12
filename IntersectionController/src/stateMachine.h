@@ -40,12 +40,16 @@ struct itimerspec itime_ped_timer; // used for ped/ped sense
 
 
 
-traffic_mode_t mode;
-
 void initiliseTimer();
-traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_flags_t * input_data);
-traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_flags_t * input_data);
+traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_data);
+traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_data);
 void updateTimers(traffic_state_t current_state);
+
+bool decideChangeStatePeak(struct _pulse * change_state_msg, traffic_state_t current_state);
+bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_buffer_t * input_queue);
+void clearInputPeak(traffic_input_buffer_t * input_queue, traffic_state_t state);
+void clearInputOffPeak(traffic_input_buffer_t * input_queue, traffic_state_t state);
+
 void * trafficStateMachine(void * data);
 
 
