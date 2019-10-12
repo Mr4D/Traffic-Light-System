@@ -34,8 +34,7 @@ int main(void) {
 	rail_state_data_t rail_state_data = {	// TODO: to update this data type
 		NO_TRAIN,
 		false,
-		PTHREAD_MUTEX_INITIALIZER,
-		PTHREAD_COND_INITIALIZER
+		PTHREAD_MUTEX_INITIALIZER
 	};
 
 	traffic_input_data_t input_data = {
