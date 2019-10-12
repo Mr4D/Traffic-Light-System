@@ -7,7 +7,7 @@
 
 
 int main(void) {
-	rail_state_data_t rcc_state_data = {
+	rail_state_rcc_data_t rcc_state_data = {
 		NO_TRAIN,
 		true,
 		PTHREAD_MUTEX_INITIALIZER,
