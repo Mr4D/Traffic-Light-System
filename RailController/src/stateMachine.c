@@ -5,20 +5,17 @@ void * railStateMachine(void * data) {
 	printf("RailStateMachine()\n");
 
 	struct _pulse change_state_msg;
-	int change_state_channel_id;
 	int rcvid;
 
 
 	rail_state_t current_state = NO_TRAIN;
 	InputSignal rail_input;
 
-	rail_state_machine_thread_data_t * state_machine_thread_data = (rail_state_machine_thread_data_t*) data;
+	state_machine_thread_data_t * thread_data = (state_machine_thread_data_t*) data;
 
-	rail_input_data_t * input_data = state_machine_thread_data->input_data;
-	rail_crossing_state_data_t * state_data = state_machine_thread_data->rail_state_data;
-
-
-	change_state_channel_id = state_machine_thread_data->change_state_channel_id; // Create a communications channel
+	rail_input_data_t * input_data = thread_data->input_data;
+	rail_state_data_t * state_data = thread_data->rail_state_data;
+	int change_state_channel_id = *thread_data->change_state_channel_id; // Create a communications channel
 
 
 	while(1) {
@@ -48,8 +45,7 @@ void * railStateMachine(void * data) {
 		pthread_mutex_lock(&state_data->mutex_state);
 			state_data->current_state = current_state;
 
-			state_data->data_ready_msg = true;
-			state_data->data_ready_output = true;
+			state_data->data_ready = true;
 			pthread_cond_broadcast(&state_data->cond_state_changed);
 		pthread_mutex_unlock(&state_data->mutex_state);
 

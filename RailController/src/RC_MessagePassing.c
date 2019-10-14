@@ -2,7 +2,9 @@
 
 
 void * critical_client_channel_thread(void * data) {
-	rail_crossing_state_data_t * state_data = (traffic_state_data_t *) data;
+
+	critial_client_thread_data_t * thread_data = (critial_client_thread_data_t *) data;
+	rail_state_data_t * state_data = thread_data->rail_state_data;
 
 	msg_data_t msg;
 	msg_reply_t reply;
@@ -33,13 +35,13 @@ void * critical_client_channel_thread(void * data) {
 	while(1){
 		pthread_mutex_lock(&state_data->mutex_state);
 
-			while (!state_data->data_ready_msg){
+			while (!state_data->data_ready){
 				pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
 			}
 
 			msg.state.rail_state = state_data->current_state;
 
-			state_data->data_ready_msg = false;
+			state_data->data_ready = false;
 			pthread_cond_signal(&state_data->cond_state_changed);
 		pthread_mutex_unlock(&state_data->mutex_state);
 

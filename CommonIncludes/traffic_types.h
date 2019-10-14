@@ -1,4 +1,16 @@
 #pragma once
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <sys/netmgr.h>
+#include <errno.h>
+#include <sys/dispatch.h>
+#include <fcntl.h>
+#include <share.h>
+
+#include <unistd.h>
+#include <sys/param.h>
+#include <sys/types.h>
 
 #define BUF_SIZE 100
 
@@ -24,28 +36,8 @@
 #define X1_CLIENT_ID 4
 #define RCC_CLIENT_ID 5
 
-#define NULL_PULSE 0
-#define STATE_TIMER_EXPIRE_PULSE 1
-#define PED_TIMER_EXPIRE_PULSE 2
-#define NS_STR_INPUT_PULSE 3
-#define EW_STR_INPUT_PULSE 4
-#define NS_R_INPUT_PULSE 5
-#define EW_R_INPUT_PULSE 6
-#define NS_P_INPUT_PULSE 7
-#define EW_P_INPUT_PULSE 8
-
-#define TRAIN_INPUT_PULSE 9
-#define NO_TRAIN_INPUT_PULSE 10
 
 #define PULSE_PRIORITY 10
-
-// KEYS
-#define	NS_STR 1
-#define	NS_R   2
-#define	NS_P   3
-#define	EW_STR 5
-#define	EW_R   6
-#define	EW_P   7
 
 
 /* Boolean typedef */
@@ -88,18 +80,18 @@ typedef enum {
 	NO_TRAIN
 } rail_state_t;
 
+typedef union {
+	traffic_state_t traffic_state;
+	rail_state_t rail_state;
+} state_t;
 
-typedef enum {
-    PEAK,
-    OFF_PEAK
-} traffic_mode_t;
+
 
 /* Struct for r/w locking of traffic states */
 typedef struct {
 	traffic_state_t current_state;
 
-	bool data_ready_output;
-	bool data_ready_message;
+	bool data_ready;
 
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
@@ -112,114 +104,12 @@ typedef struct {
 
 	rail_state_t current_state;	
 
-	bool data_ready_msg;
-	bool data_ready_output;
-	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
-
-} rail_crossing_state_data_t;
-
-/* Struct for r/w locking of rail states*/
-typedef struct {
-
-	rail_state_t current_state;	
-
 	bool data_ready;
 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
 
 } rail_state_data_t;
 
-typedef struct {
-
-	rail_state_t current_state;	
-
-	bool data_ready;
-	pthread_mutex_t mutex_state;		// needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed;	// needs to be set to PTHREAD_COND_INITIALIZER;
-
-} rail_state_rcc_data_t;
-
-/* Struct for r/w locking of ped states*/
-// typedef struct {
-
-// 	ped_state_t current_state;
-// 	bool produce_data;
-// 	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-// 	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
-
-// }	ped_state_data_t;
-
-/* tcc state requirements*/
-typedef struct {
-
-	traffic_state_t i1_state;	
-	traffic_state_t i2_state;
-	rail_state_t x1_state;
-	
-	bool produce_data;	
-	pthread_mutex_t mutex_state;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
-	pthread_cond_t cond_state_changed; // needs to be set to PTHREAD_COND_INITIALIZER;
-
-} tcc_state_data_t;
-
-typedef union {
-	traffic_state_t traffic_state;
-	rail_state_t rail_state;
-} state_t;
-
-typedef struct{
-	traffic_state_data_t * traffic_state_data;
-	rail_state_data_t * rail_state_data;
-} ic_state_data_t;
-
-typedef enum {ON, OFF} InputSignal;
-
-#define INPUT_COUNT 6
-
-
-#define TRAFFIC_INPUT_COUNT 6
-
-// Input Signal Buffer
-typedef struct {
-	int end_index;
-
-	int input_buffer[TRAFFIC_INPUT_COUNT];
-}traffic_input_buffer_t;
-
-typedef struct {
-	traffic_input_buffer_t * input_queue;
-	pthread_rwlock_t rwlock_input;
-} traffic_input_data_t;
-
-typedef struct {
-	traffic_input_data_t * input_data;
-	int change_state_channel_id;
-	traffic_mode_t * mode;
-} traffic_input_thread_data_t;
-
-
-typedef struct {
-	InputSignal train;
-	pthread_rwlock_t rwlock_input;
-} rail_input_data_t;
-
-typedef struct {
-	rail_input_data_t * input_data;
-	int change_state_channel_id;
-} rail_input_thread_data_t;
-
-typedef struct {
-	traffic_input_data_t * input_data;
-	ic_state_data_t * ic_state_data;
-	int change_state_channel_id;
-	traffic_mode_t * mode;
-} traffic_state_machine_thread_data_t;
-
-typedef struct {
-	rail_input_data_t * input_data;
-	rail_crossing_state_data_t * rail_state_data;
-	int change_state_channel_id;
-} rail_state_machine_thread_data_t;
 
 typedef struct {
 	struct _pulse hdr; // Our real data comes after this header
@@ -232,5 +122,8 @@ typedef struct {
     char buf[BUF_SIZE]; // Message we send back to clients to tell them the messages was processed correctly.
 } msg_reply_t;
 
-
+typedef struct {
+	int coid;
+	pthread_rwlock_t rwlock_input;
+} connection_id_data_t;
 

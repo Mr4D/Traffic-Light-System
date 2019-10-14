@@ -2,7 +2,8 @@
 
 void * critical_client_channel_thread(void * data){
 
-	rail_state_rcc_data_t * state_data = (rail_state_rcc_data_t *) data;
+	critical_client_thread_data_t * thread_data = (critical_client_thread_data_t*) data;
+	rail_state_data_t * state_data = thread_data->rail_state_data;
 
     msg_data_t msg;
     msg_reply_t reply;
@@ -62,7 +63,8 @@ void * critical_client_channel_thread(void * data){
 
 void * critical_server_channel_thread(void * data){
 
-	rail_state_rcc_data_t * rcc_state_data = (rail_state_rcc_data_t*) data;
+	critical_server_thread_data_t * thread_data = (critical_server_thread_data_t*) data;
+	rail_state_data_t * state_data = thread_data->rail_state_data;
 
 	printf("critical_server_channel()\n");
 	name_attach_t * attach;
@@ -172,12 +174,12 @@ void * critical_server_channel_thread(void * data){
 		   fflush(stdout);
 		   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
-		pthread_mutex_lock(&rcc_state_data->mutex_state);
-		   rcc_state_data->current_state = msg.state.rail_state;
+		pthread_mutex_lock(&state_data->mutex_state);
+		state_data->current_state = msg.state.rail_state;
 
-		   rcc_state_data->data_ready = true;
-		   pthread_cond_signal(&rcc_state_data->cond_state_changed);
-	   pthread_mutex_unlock(&rcc_state_data->mutex_state);
+		state_data->data_ready = true;
+		   pthread_cond_signal(&state_data->cond_state_changed);
+	   pthread_mutex_unlock(&state_data->mutex_state);
 	   printf("data produced\n");
 
 	   sprintf(replymsg.buf,"OK");

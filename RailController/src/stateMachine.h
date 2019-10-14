@@ -12,6 +12,7 @@
 #include <sys/neutrino.h>
 
 #include <traffic_types.h>
+#include "RailController.h"
 
 void * railStateMachine(void * data);
 void printState(rail_state_t state);

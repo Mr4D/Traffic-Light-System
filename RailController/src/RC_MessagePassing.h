@@ -14,6 +14,7 @@
 #include <sys/types.h>
 
 #include <traffic_types.h>
+#include "RailController.h"
 
 
 void * critical_client_channel_thread(void * data);

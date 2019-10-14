@@ -1,7 +1,7 @@
 #include "TCC_MessagePassing.h"
 
 void * critical_client_channel_thread(void * data){
-	tcc_state_data_t * state_data = (tcc_state_data_t *) data;
+	tcc_state_data_t * thread_data = (tcc_state_data_t *) data;
 
 	msg_data_t msg_rail_state;
 	msg_reply_t reply_i1;
@@ -39,17 +39,17 @@ void * critical_client_channel_thread(void * data){
 	msg_rail_state.hdr.subtype = 0x00;
 
 	while(1){
-		pthread_mutex_lock(&state_data->mutex_state);
-
-		while (state_data->produce_data){
-			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
-		}
-
-		msg_rail_state.state.traffic_state = state_data->x1_state;
-
-		state_data->produce_data = true;
-		pthread_cond_signal(&state_data->cond_state_changed);
-		pthread_mutex_unlock(&state_data->mutex_state);
+//		pthread_mutex_lock(&state_data->mutex_state);
+//
+//		while (state_data->produce_data){
+//			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
+//		}
+//
+//		msg_rail_state.state.traffic_state = state_data->x1_state;
+//
+//		state_data->produce_data = true;
+//		pthread_cond_signal(&state_data->cond_state_changed);
+//		pthread_mutex_unlock(&state_data->mutex_state);
 
 		printf("data consumed\n");
 
@@ -204,31 +204,31 @@ void * critical_server_channel_thread(void * data){
 		   fflush(stdout);
 		   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
-		pthread_mutex_lock(&tcc_state_data->mutex_state);
-
-		while (!tcc_state_data->produce_data){
-		pthread_cond_wait(&tcc_state_data->cond_state_changed, &tcc_state_data->mutex_state);
-		}
-
-	   if(msg.client_id == I1_CLIENT_ID){
-
-		   tcc_state_data->i1_state = msg.state.traffic_state;
-	   }
-
-	   else if(msg.client_id == I2_CLIENT_ID){
-
-		   tcc_state_data->i2_state = msg.state.traffic_state;
-	   }
-
-	   else if(msg.client_id == RCC_CLIENT_ID){
-
-		   tcc_state_data->x1_state = msg.state.rail_state;
-	   }
-
-	   tcc_state_data->produce_data = false;
-	   pthread_cond_signal(&tcc_state_data->cond_state_changed);
-	   pthread_mutex_unlock(&tcc_state_data->mutex_state);
-	   printf("data produced\n");
+//		pthread_mutex_lock(&tcc_state_data->mutex_state);
+//
+//		while (!tcc_state_data->produce_data){
+//		pthread_cond_wait(&tcc_state_data->cond_state_changed, &tcc_state_data->mutex_state);
+//		}
+//
+//	   if(msg.client_id == I1_CLIENT_ID){
+//
+//		   tcc_state_data->i1_state = msg.state.traffic_state;
+//	   }
+//
+//	   else if(msg.client_id == I2_CLIENT_ID){
+//
+//		   tcc_state_data->i2_state = msg.state.traffic_state;
+//	   }
+//
+//	   else if(msg.client_id == RCC_CLIENT_ID){
+//
+//		   tcc_state_data->x1_state = msg.state.rail_state;
+//	   }
+//
+//	   tcc_state_data->produce_data = false;
+//	   pthread_cond_signal(&tcc_state_data->cond_state_changed);
+//	   pthread_mutex_unlock(&tcc_state_data->mutex_state);
+//	   printf("data produced\n");
 
 	   sprintf(replymsg.buf,"OK");
 	   printf("\n    -----> replying with: '%s'\n",replymsg.buf);

@@ -13,6 +13,7 @@
 
 #include <traffic_types.h>
 #include <traffic_file_lib.h>
+#include "IntersectionController.h"
 
 #define TIME_TRAFFIC_INITIAL 1
 #define TIME_TRAFFIC_STRAIGHT 10 //NEVER LESS THAN 10
@@ -40,19 +41,17 @@ struct itimerspec itime_state_timer;
 struct itimerspec itime_ped_timer; // used for ped/ped sense
 
 
+void * trafficStateMachine(void * data);
 
 void initiliseTimer();
-traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_data);
-traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_data);
+traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_data);
+traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_data);
 void updateTimers(traffic_state_t current_state);
 
 bool decideChangeStatePeak(struct _pulse * change_state_msg, traffic_state_t current_state);
-bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_buffer_t * input_queue);
+bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_queue_t * input_queue);
 void clearInputPeak(traffic_input_data_t * input_data, traffic_state_t state);
 void clearInputOffPeak(traffic_input_data_t * input_data, traffic_state_t state);
-
-void * trafficStateMachine(void * data);
-
 
 void stateToString(traffic_state_t state, char * state_str);
 //void printInputBuf(int * buf, int length);

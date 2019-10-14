@@ -13,5 +13,6 @@
 #include <sys/types.h>
 
 #include <traffic_types.h>
+#include "TrafficCentralController.h"
 
 void * t_output (void * data);

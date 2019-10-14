@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdio.h>
-//const char * filename = "I1_logfile.log";
+#include "traffic_types.h"
 
 #define LOG 1
 #define TEST 1
@@ -16,4 +15,4 @@ char log_message[MAX_MESSAGE_LENGTH];
 
 FILE * openTrafficFile(const char * filename);
 int writeTrafficFile(const char * filename, char * msg);
-int closeTrafficFile();
+int closeTrafficFile(FILE * fp);

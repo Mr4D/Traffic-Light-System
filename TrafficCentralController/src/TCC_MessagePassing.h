@@ -13,7 +13,7 @@
 #include <sys/types.h>
 
 #include <traffic_types.h>
-
+#include "TrafficCentralController.h"
 
 void * critical_client_channel_thread(void * data);
 //void * noncritical_client_channel_thread(void * data);

@@ -7,6 +7,148 @@
 
 #include "stateMachine.h"
 
+void * trafficStateMachine(void * data) {
+
+	printf("TrafficStateMachine()\n");
+
+	struct _pulse change_state_msg;
+	int rcvid;
+
+
+	traffic_state_t next_state = INITIAL;
+	traffic_state_t current_state = INITIAL;
+	traffic_state_t previous_state = INITIAL;
+	traffic_input_queue_t input_queue;
+	traffic_mode_t mode;
+	int tcc_citical_server_coid;
+
+	state_machine_thread_data_t * thread_data = (state_machine_thread_data_t*) data;
+
+	traffic_input_data_t * input_data = thread_data->input_data;
+	traffic_state_data_t * traffic_state_data = thread_data->traffic_state_data;
+	rail_state_data_t * rail_state_data = thread_data->rail_state_data;
+	int change_state_channel_id = *thread_data->change_state_channel_id;
+	connection_id_data_t * tcc_critical_server_coid_data = thread_data->tcc_critical_server_coid_data;
+	traffic_mode_data_t * mode_data = thread_data->traffic_mode_data;
+
+	initiliseTimer(change_state_channel_id);
+
+	pthread_rwlock_rdlock( &tcc_critical_server_coid_data->rwlock_input );
+		tcc_citical_server_coid = tcc_critical_server_coid_data->coid;
+	pthread_rwlock_unlock( &tcc_critical_server_coid_data->rwlock_input );
+
+	critical_client_send_data_t critical_client_send_data = {
+			tcc_citical_server_coid,
+			current_state,
+			PTHREAD_MUTEX_INITIALIZER
+	};
+
+
+	while(1) {
+
+		pthread_rwlock_rdlock( &mode_data->rwlock_input );
+			mode = mode_data->mode;
+		pthread_rwlock_unlock( &mode_data->rwlock_input );
+
+		// get input flags
+		pthread_rwlock_rdlock( &input_data->rwlock_input );
+			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+		pthread_rwlock_unlock( &input_data->rwlock_input );
+
+		//printInputBuf(input_queue.input_buffer, input_queue.end_index);
+
+		// get next state
+		if (mode == PEAK) {
+			next_state = changeTrafficState_peak(current_state, previous_state, &input_queue);
+		}
+		else if (mode == OFF_PEAK) {
+			next_state = changeTrafficState_offPeak(current_state, previous_state, &input_queue);
+		}
+		else {
+			if(LOG){
+				writeTrafficLogFile("Incorrect Mode, mode: %d\n", mode);
+			}
+		}
+
+
+
+		// update previous state
+		previous_state = current_state;
+		current_state = next_state;
+
+		// update current state
+		pthread_mutex_lock(&traffic_state_data->mutex_state);
+			traffic_state_data->current_state = current_state;
+
+			traffic_state_data->data_ready = true;
+			pthread_cond_broadcast(&traffic_state_data->cond_state_changed);
+		pthread_mutex_unlock(&traffic_state_data->mutex_state);
+
+
+		// send state to tcc
+		pthread_rwlock_rdlock( &tcc_critical_server_coid_data->rwlock_input );
+			tcc_citical_server_coid = tcc_critical_server_coid_data->coid;
+		pthread_rwlock_unlock( &tcc_critical_server_coid_data->rwlock_input );
+
+		pthread_mutex_lock(&critical_client_send_data.mutex);
+			critical_client_send_data.coid = tcc_citical_server_coid;
+			critical_client_send_data.current_state = current_state;
+		pthread_mutex_unlock(&critical_client_send_data.mutex);
+
+		pthread_create(NULL, NULL, &critical_client_send_thread, &critical_client_send_data);
+
+		if(mode == PEAK){
+			updateTimersPeak(current_state);
+		}
+		else if(mode == OFF_PEAK){
+			updateTimersOffPeak(current_state);
+		}
+		else {
+			if(LOG){
+				writeTrafficLogFile(LOG_FILE_NAME, "Mode Error\n");
+			}
+		}
+
+
+		if(LOG){
+			// Print state info
+			stateToString(current_state, log_message);
+			strcat(log_message, "\n");
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+			sprintf(log_message, "Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+		}
+
+
+
+		// wait for timer
+		bool change_state = false;
+		while(!change_state){
+			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
+			if(mode == PEAK){
+				change_state = decideChangeStatePeak(&change_state_msg, current_state);
+			}
+			else if(mode == OFF_PEAK){
+				pthread_rwlock_rdlock( &input_data->rwlock_input );
+					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+				pthread_rwlock_unlock( &input_data->rwlock_input );
+				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
+			}
+		}
+
+
+		if(mode == PEAK){
+			clearInputPeak(input_data, current_state);
+		}
+		else if(mode == OFF_PEAK){
+			clearInputOffPeak(input_data, current_state);
+		}
+
+	}
+
+	return EXIT_SUCCESS;
+}
+
 void initiliseTimer(int chid) {
 
 
@@ -94,7 +236,7 @@ void initiliseTimer(int chid) {
 	}
 }
 
-traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_queue) {
+traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_queue) {
 
 	printf("changeTrafficState_peak\n");
 	traffic_state_t next_state = INITIAL;
@@ -122,7 +264,7 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 
 		// North south straight transitions
 		case NS_S_G_SEN:
-			if(containsTrafficInputBuf(input_queue->input_buffer, input_queue->end_index, NS_P)){
+			if(containsTrafficInputBuf(input_queue, NS_P)){
 				next_state = NS_S_G_P_X;
 			}
 			else{
@@ -148,7 +290,7 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 
 		// East west straight transitions
 		case EW_S_G_SEN:
-			if(containsTrafficInputBuf(input_queue->input_buffer, input_queue->end_index, EW_P)){
+			if(containsTrafficInputBuf(input_queue, EW_P)){
 				next_state = EW_S_G_P_X;
 			}
 			else {
@@ -199,7 +341,7 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 	return next_state;
 }
 
-traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_queue) {
+traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_queue) {
 
 
 	traffic_state_t next_state = INITIAL;
@@ -541,13 +683,13 @@ bool decideChangeStatePeak(struct _pulse * change_state_msg, traffic_state_t cur
 	return change_state;
 }
 
-bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_buffer_t * input_queue) {
+bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_queue_t * input_queue) {
 	bool change_state = false;
 
 	if ( change_state_msg->code == STATE_TIMER_EXPIRE_PULSE){
 		writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
 
-		if(!(current_state == EW_S_G_SEN && input_queue->end_index == 0)){
+		if(!(current_state == EW_S_G_SEN && input_queue->length == 0)){
 			change_state = true;
 		}
 	}
@@ -577,158 +719,61 @@ bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t 
 
 void clearInputPeak(traffic_input_data_t * input_data, traffic_state_t state) {
 	// clear input signal
+	traffic_input_queue_t input_queue;
+
+	pthread_rwlock_rdlock( &input_data->rwlock_input );
+		memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+
 	if(state == NS_S_G_P_X){
-		deleteTrafficInputBufCell(input_data, NS_P);
+		deleteTrafficInputBufCell(&input_queue, NS_P);
 	}
 	else if (state == EW_S_G_P_X) {
-		deleteTrafficInputBufCell(input_data, EW_P);
+		deleteTrafficInputBufCell(&input_queue, EW_P);
 	}
+
+	pthread_rwlock_wrlock( &input_data->rwlock_input );
+		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
 }
 void clearInputOffPeak(traffic_input_data_t * input_data, traffic_state_t state){
+
+	traffic_input_queue_t input_queue;
+
+	pthread_rwlock_rdlock( &input_data->rwlock_input );
+		memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+
 	if(state == NS_S_G_P_X){
 		int cell_count = 2;
 		int deletCells[] = {NS_STR,NS_P};
 
-		deleteTrafficInputBufCells(input_data, deletCells, cell_count);
+		deleteTrafficInputBufCells(&input_queue, deletCells, cell_count);
 	}
 	else if (state == EW_S_G_P_X) {
 		int cell_count = 2;
 		int deletCells[] = {EW_STR,EW_P};
 
-		deleteTrafficInputBufCells(input_data, deletCells, cell_count);
+		deleteTrafficInputBufCells(&input_queue, deletCells, cell_count);
 	}
 	if(state == NS_S_G_SEN || state == NS_S_G){
-		deleteTrafficInputBufCell(input_data, NS_STR);
+		deleteTrafficInputBufCell(&input_queue, NS_STR);
 	}
 	else if(state == EW_S_G_SEN || state == EW_S_G){
-		deleteTrafficInputBufCell(input_data, EW_STR);
+		deleteTrafficInputBufCell(&input_queue, EW_STR);
 	}
 	else if (state == NS_R_G) {
-		deleteTrafficInputBufCell(input_data, NS_R);
+		deleteTrafficInputBufCell(&input_queue, NS_R);
 	}
 	else if (state == EW_R_G) {
-		deleteTrafficInputBufCell(input_data, EW_R);
-	}
-}
-
-void * trafficStateMachine(void * data) {
-
-	printf("TrafficStateMachine()\n");
-
-	struct _pulse change_state_msg;
-	int change_state_channel_id;
-	int rcvid;
-
-
-	traffic_state_t next_state = INITIAL;
-	traffic_state_t current_state = INITIAL;
-	traffic_state_t previous_state = INITIAL;
-	traffic_input_buffer_t input_queue;
-
-	traffic_state_machine_thread_data_t * state_machine_thread_data = (traffic_state_machine_thread_data_t*) data;
-
-	traffic_input_data_t * input_data = state_machine_thread_data->input_data;
-	ic_state_data_t * ic_state_data = state_machine_thread_data->ic_state_data;
-	traffic_mode_t mode = *state_machine_thread_data->mode;
-
-
-	traffic_state_data_t * state_data = ic_state_data->traffic_state_data;
-	//rail_state_data_t * rail_state_data = ic_state_data->rail_state_data;
-
-
-	change_state_channel_id = state_machine_thread_data->change_state_channel_id; // Create a communications channel
-	initiliseTimer(change_state_channel_id);
-
-
-
-	while(1) {
-
-		// get input flags
-		pthread_rwlock_rdlock( &input_data->rwlock_input );
-			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-		pthread_rwlock_unlock( &input_data->rwlock_input );
-
-		printInputBuf(input_queue.input_buffer, input_queue.end_index);
-		// get next state
-		if (mode == PEAK) {
-			next_state = changeTrafficState_peak(current_state, previous_state, &input_queue);
-		}
-		else if (mode == OFF_PEAK) {
-			next_state = changeTrafficState_offPeak(current_state, previous_state, &input_queue);
-		}
-		else {
-			if(LOG){
-				writeTrafficLogFile("Incorrect Mode, mode: %d\n", mode);
-			}
-		}
-
-
-
-		// update previous state
-		previous_state = current_state;
-		current_state = next_state;
-
-		// update current state
-		pthread_mutex_lock(&state_data->mutex_state);
-			state_data->current_state = current_state;
-
-			state_data->data_ready_message = true;
-			state_data->data_ready_output = true;
-			pthread_cond_broadcast(&state_data->cond_state_changed);
-		pthread_mutex_unlock(&state_data->mutex_state);
-
-
-		if(mode == PEAK){
-			updateTimersPeak(current_state);
-		}
-		else if(mode == OFF_PEAK){
-			updateTimersOffPeak(current_state);
-		}
-		else {
-			printf("Mode Error\n");
-		}
-
-
-
-		// Print state info
-		stateToString(state_data->current_state, log_message);
-		strcat(log_message, "\n");
-		writeTrafficLogFile(LOG_FILE_NAME, log_message);
-		sprintf(log_message, "Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
-		writeTrafficLogFile(LOG_FILE_NAME, log_message);
-
-
-
-		// wait for timer
-		bool change_state = false;
-		while(!change_state){
-			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
-			if(mode == PEAK){
-				change_state = decideChangeStatePeak(&change_state_msg, current_state);
-			}
-			else if(mode == OFF_PEAK){
-				pthread_rwlock_rdlock( &input_data->rwlock_input );
-					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-				pthread_rwlock_unlock( &input_data->rwlock_input );
-				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
-			}
-		}
-
-
-		if(mode == PEAK){
-			clearInputPeak(input_data, current_state);
-		}
-		else if(mode == OFF_PEAK){
-			clearInputOffPeak(input_data, current_state);
-		}
-
-
-		printf("\t\tCHANGE STATE\n");
-
+		deleteTrafficInputBufCell(&input_queue, EW_R);
 	}
 
-	return EXIT_SUCCESS;
+	pthread_rwlock_wrlock( &input_data->rwlock_input );
+		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
 }
+
 
 void stateToString(traffic_state_t state, char * state_str) {
 
