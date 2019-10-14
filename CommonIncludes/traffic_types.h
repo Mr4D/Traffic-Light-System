@@ -1,5 +1,17 @@
 #pragma once
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <errno.h>
+#include <sys/dispatch.h>
+#include <fcntl.h>
+#include <share.h>
+
+#include <unistd.h>
+#include <sys/param.h>
+#include <sys/types.h>
+
 #define BUF_SIZE 100
 
 #define I1_HOSTNAME "RMIT_BBB_v5_02"

@@ -20,11 +20,7 @@ void * critical_client_channel_thread(void * data){
 		}
 		sleep(3);
 	}
-
-
-
-
-
+	
 	printf("Connection established to: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
 
     // We would have pre-defined data to stuff here
