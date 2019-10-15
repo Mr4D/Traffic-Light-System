@@ -59,14 +59,12 @@ typedef struct {
 	traffic_mode_data_t * traffic_mode_data;
 } state_machine_thread_data_t;
 
-
 // input thread
 typedef struct {
 	traffic_input_data_t * input_data;
 	int * change_state_channel_id;
 	traffic_mode_data_t * traffic_mode_data;
 } input_thread_data_t;
-
 
 // output thread
 typedef struct {

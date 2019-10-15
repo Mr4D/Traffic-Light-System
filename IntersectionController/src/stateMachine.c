@@ -49,7 +49,7 @@ void *trafficStateMachine(void *data) {
 		current_state,
 		PTHREAD_MUTEX_INITIALIZER};
 
-	do while (!reset_flag) {	
+	do {
 
 		pthread_rwlock_rdlock(&mode_data->rwlock_input);	// Save the mode
 			mode = mode_data->mode;
@@ -68,9 +68,8 @@ void *trafficStateMachine(void *data) {
 		pthread_rwlock_unlock(&input_data->rwlock_input);
 
 		//printInputBuf(input_queue.input_buffer, input_queue.end_index);
-		
 		if (fault_flag) {
-			next_state = handleFaultSig();
+			next_state = handleFaultSig(current_state);
 		}
 		else if (mode == PEAK) {
 			next_state = changeTrafficState_peak(current_state, previous_state, &input_queue);
@@ -105,7 +104,7 @@ void *trafficStateMachine(void *data) {
 			critical_client_send_data.current_state = current_state;
 		pthread_mutex_unlock(&critical_client_send_data.mutex);
 
-		pthread_create(NULL, NULL, &critical_client_send_thread, &critical_client_send_data);
+//		pthread_create(NULL, NULL, &critical_client_send_thread, &critical_client_send_data);
 
 		if (mode == PEAK) {
 			updateTimersPeak(current_state);
@@ -150,7 +149,7 @@ void *trafficStateMachine(void *data) {
 		else if (mode == OFF_PEAK) {
 			clearInputOffPeak(input_data, current_state);
 		}
-	}
+	} while (!reset_flag);
 
 	return EXIT_SUCCESS;
 }
@@ -232,7 +231,7 @@ void initiliseTimer(int chid) {
 	}
 }
 
-traffic_state_t handleFaultSig(traffic_state_t current_state,traffic_state_t previous_state) {
+traffic_state_t handleFaultSig(traffic_state_t current_state) {
 
 	printf("handleFaultSig()\n");
 	traffic_state_t next_state = FAULT;
@@ -240,30 +239,39 @@ traffic_state_t handleFaultSig(traffic_state_t current_state,traffic_state_t pre
 	switch (current_state) {
 		case INITIAL:
 			next_state = FAULT;
+			break;
 
 		case ALL_RED:
 			next_state = FAULT;
+			break;
 
 		case NS_S_G_SEN:
 			next_state = NS_S_Y;
+			break;
 
 		case NS_S_G_P_X:
 			next_state = NS_S_Y;
+			break;
 
 		case NS_S_G_P_F:
 			next_state = NS_S_Y;
+			break;
 
 		case NS_S_G:
 			next_state = NS_S_Y;
+			break;
 
 		case NS_S_Y:
 			next_state = FAULT;
+			break;
 
 		case EW_S_G_SEN:
 			next_state = EW_S_Y;
+			break;
 
 		case EW_S_G_P_X:
 			next_state = EW_S_Y;
+			break;
 
 		case EW_S_G_P_F:
 			next_state = EW_S_Y;
@@ -300,6 +308,8 @@ traffic_state_t handleFaultSig(traffic_state_t current_state,traffic_state_t pre
 			next_state = FAULT;
 			break;
 	}
+
+	return next_state;
 }
 
 traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t *input_queue) {
