@@ -46,6 +46,7 @@ rwildcard = $(wildcard $(addprefix $1/*.,$2)) $(foreach d,$(wildcard $1/*),$(cal
 
 #Source list
 SRCS = $(call rwildcard, src, c)
+SRCS += $(call rwildcard, ../CommonIncludes, c)
 
 #Object files list
 OBJS = $(addprefix $(OUTPUT_DIR)/,$(addsuffix .o, $(basename $(SRCS))))

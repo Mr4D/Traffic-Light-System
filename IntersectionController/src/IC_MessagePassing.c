@@ -1,99 +1,52 @@
 #include "IC_MessagePassing.h"
 
-void * critical_client_channel_thread(void * data){
 
-	traffic_state_data_t * state_data = (traffic_state_data_t *) data;
-
-    msg_data_t msg;
-    msg_reply_t reply;
-
-    msg.client_id = I1_CLIENT_ID; // unique number for this client (optional)
-
-	int server_coid = -1;
-
-
-	while (server_coid == -1) {
-		printf("  ---> Trying to connect to server named: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
-		if ((server_coid = name_open(TCC_CRITICAL_CHANNEL_ATTACH_POINT, 0)) == -1) {
-			printf("\n    ERROR, could not connect to server!\n\n");
-//			return EXIT_FAILURE;
-		}
-		sleep(3);
-	}
-
-
-
-
-
-	printf("Connection established to: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
-
-    // We would have pre-defined data to stuff here
-	msg.hdr.type = 0x00;
-	msg.hdr.subtype = 0x00;
-
-	while(1){
-		pthread_mutex_lock(&state_data->mutex_state);
-
-		while (!state_data->data_ready_message){
-			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
-		}
-
-		msg.state.traffic_state = state_data->current_state;
-
-		state_data->data_ready_message = false;
-		pthread_cond_signal(&state_data->cond_state_changed);
-		pthread_mutex_unlock(&state_data->mutex_state);
-
-		printf("data consumed\n");
-
-		printf("Client (ID:%d), sending data packet with the state value: %d \n", msg.client_id, msg.state.traffic_state);
-		fflush(stdout);
-		if (MsgSend(server_coid, &msg, sizeof(msg), &reply, sizeof(reply)) == -1) {
-			printf(" Error data '%d' NOT sent to server\n", msg.state.traffic_state);
-				// maybe we did not get a reply from the server
-			break;
-		}
-		else { // now process the reply
-			printf("   -->Reply is: '%s'\n", reply.buf);
-		}
-
-	}
-
-	ConnectDetach(server_coid);
-}
 void * critical_server_channel_thread(void * data) {
-	rail_state_data_t * state_data = (rail_state_data_t*) data;
 
-	printf("critical_server_channel()\n");
+
+
+	critical_server_data_t * thread_data = (critical_server_data_t *) data;
+	traffic_state_data_t * traffic_state_data = thread_data->traffic_state_data;
+	rail_state_data_t * rail_state_data = thread_data->rail_state_data;
+	traffic_mode_data_t * traffic_mode_data = thread_data->traffic_mode_data;
+	fault_data_t * fault_data = thread_data->fault_data;
+	reset_data_t * reset_data = thread_data->reset_data;
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
 	name_attach_t * attach;
 
 	// Create a local name (/dev/name/...)
-	if ((attach = name_attach(NULL, I1_CRITICAL_CHANNEL, 0)) == NULL) {
-	   printf("\nFailed to name_attach on ATTACH_POINT: %s \n", I1_CRITICAL_CHANNEL);
-	   printf("\n Possibly another server with the same name is already running !\n");
-	   return EXIT_FAILURE;
+	if ((attach = createChannel(I1_CRITICAL_CHANNEL)) == NULL) {
+		printf("couldn't create channel\n");
+		pthread_exit(NULL);
 	}
-
-	printf("Server Listening for Clients on ATTACH_POINT: %s \n", I1_CRITICAL_CHANNEL);
+	else {
+		thread_data->attach = attach;
+		printf("channel: %s\n", I1_CRITICAL_CHANNEL);
+	}
 
 
 
 	msg_data_t msg;
-	int rcvid=0;
-	int Stay_alive=1, living=0;	// server stays running (ignores _PULSE_CODE_DISCONNECT request)
+	int rcvid = 0;
+	int Stay_alive = 1, living = 0; // server stays running (ignores _PULSE_CODE_DISCONNECT request)
 
 	msg_reply_t replymsg; // replymsg structure for sending back to client
-	replymsg.hdr.type = 0x01;
+	replymsg.hdr.type = REPLY_MSG;
 	replymsg.hdr.subtype = 0x00;
 
-	living =1;
-	while (living) {
+	living = 1;
+
+	bool reset = false;
+	while (!reset) {
 	// Do your MsgReceive's here now with the chid
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
+	  printf("message received\n");
 
 	  if (rcvid == -1)  // Error condition, exit
 	  {
-		  printf("\nFailed to MsgReceive\n");
+		  if(LOG){
+			  writeTrafficLogFile(LOG_FILE_NAME,"\nFailed to MsgReceive\n");
+		  }
 		  break;
 	  }
 
@@ -101,44 +54,7 @@ void * critical_server_channel_thread(void * data) {
 	  // for Pulses:
 	  if (rcvid == 0)  //  Pulse received, work out what type
 	  {
-		  switch (msg.hdr.code)
-		  {
-		   case _PULSE_CODE_DISCONNECT:
-				// A client disconnected all its connections by running
-				// name_close() for each name_open()  or terminated
-			   if( Stay_alive == 0)
-			   {
-				   ConnectDetach(msg.hdr.scoid);
-				   printf("\nServer was told to Detach from ClientID:%d ...\n", msg.client_id);
-				   living = 0; // kill while loop
-				   continue;
-			   }
-			   else
-			   {
-				   printf("\nServer received Detach pulse from ClientID:%d but rejected it ...\n", msg.client_id);
-			   }
-			   break;
-
-		   case _PULSE_CODE_UNBLOCK:
-				// REPLY blocked client wants to unblock (was hit by a signal
-				// or timed out).  It's up to you if you reply now or later.
-			   printf("\nServer got _PULSE_CODE_UNBLOCK\n");
-			   break;
-
-		   case _PULSE_CODE_COIDDEATH:  // from the kernel
-			   printf("\nServer got _PULSE_CODE_COIDDEATH\n");
-			   break;
-
-		   case _PULSE_CODE_THREADDEATH: // from the kernel
-			   printf("\nServer got _PULSE_CODE_THREADDEATH\n");
-			   break;
-
-		   default:
-			   // Some other pulse sent by one of your processes or the kernel
-			   printf("\nServer got some other pulse\n");
-			   break;
-
-		  }
+		  handlePulse(&msg);
 		  continue;// go back to top of while loop
 	  }
 
@@ -146,52 +62,89 @@ void * critical_server_channel_thread(void * data) {
 	  if(rcvid > 0) // if true then A message was received
 	  {
 
-	   // If the Global Name Service (gns) is running, name_open() sends a connect message. The server must EOK it.
-	   if (msg.hdr.type == _IO_CONNECT )
-	   {
-		   MsgReply( rcvid, EOK, NULL, 0 );
-		   printf("\n gns service is running....");
-		   continue;	// go back to top of while loop
-	   }
+		  if(msg.hdr.type >= _IO_BASE && msg.hdr.type <= _IO_MAX ){
+			  handleIOConnect(&msg, rcvid);
+		  }
+		  else {
+			   // A message (presumably ours) received
 
-	   // Some other I/O message was received; reject it
-	   if (msg.hdr.type > _IO_BASE && msg.hdr.type <= _IO_MAX )
-	   {
-		   MsgError( rcvid, ENOSYS );
-		   printf("\n Server received and IO message and rejected it....");
-		   continue;	// go back to top of while loop
-	   }
+			   // put your message handling code here and assemble a reply message
 
-	   // A message (presumably ours) received
+			  if(LOG){
+				  sprintf(log_message, "Server received data packet with value of '%d' from client (ID:%d), ", msg.data.rail_state, msg.client_id);
+				  writeTrafficLogFile(LOG_FILE_NAME,log_message);
+			  }
+			   fflush(stdout);
+				   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
-	   // put your message handling code here and assemble a reply message
+			   if(msg.hdr.type == STATE_REQUEST_MSG){
+				   printf("STATE_REQUEST_MSG\n");
+				   pthread_mutex_lock(&traffic_state_data->mutex_state);
+					   replymsg.data.traffic_state =  traffic_state_data->current_state;
+				   pthread_mutex_unlock(&traffic_state_data->mutex_state);
+			   }
+			   else if(msg.hdr.type == RAIL_STATE_MSG){
+				   printf("RAIL_STATE_MSG\n");
+				   pthread_mutex_lock(&rail_state_data->mutex_state);
+					   rail_state_data->current_state = msg.data.rail_state;
+				   pthread_mutex_unlock(&rail_state_data->mutex_state);
 
-	   printf("Server received data packet with value of '%d' from client (ID:%d), ", msg.state.rail_state, msg.client_id);
-		   fflush(stdout);
-		   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
+				   sprintf(replymsg.data.buf,"OK");
+			   }
+			   else if(msg.hdr.type == MODE_MSG){
+				   printf("MODE_MSG\n");
+				   pthread_rwlock_wrlock(&traffic_mode_data->rwlock);
+					   traffic_mode_data->mode = msg.data.mode;
+				   pthread_rwlock_unlock(&traffic_mode_data->rwlock);
 
-		pthread_mutex_lock(&state_data->mutex_state);
-			state_data->current_state = msg.state.rail_state;
-		pthread_mutex_unlock(&state_data->mutex_state);
+				   sprintf(replymsg.data.buf,"OK");
+			   }
+			   else if(msg.hdr.type == FAULT_MSG){
+				   printf("FAULT_MSG\n");
+				   pthread_mutex_lock(&fault_data->mutex);
+					   fault_data->fault = msg.data.fault;
+				   pthread_mutex_unlock(&fault_data->mutex);
 
+				   pthread_sleepon_lock();
+						change_state_flags->fault = true;
+						pthread_sleepon_signal(change_state_flags);
+					pthread_sleepon_unlock();
 
-		printf("data produced\n");
+				   sprintf(replymsg.data.buf,"OK");
+			   }
+			   else if(msg.hdr.type == RESET_MSG){
+				   printf("RESET_MSG\n");
+				   if(msg.data.reset){
+					   reset = msg.data.reset;
+					   printf("reset: %d\n", reset);
+					   pthread_sleepon_lock();
+							change_state_flags->reset = true;
+							pthread_sleepon_signal(change_state_flags);
+						pthread_sleepon_unlock();
+				   }
+				   sprintf(replymsg.data.buf,"OK");
+			   }
+			   else {
+				   printf("msg.type: %d\n", msg.hdr.type);
+				   printf("message type not defined\n");
+			   }
 
-	   sprintf(replymsg.buf,"OK");
-	   printf("\n    -----> replying with: '%s'\n",replymsg.buf);
-	   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
+			   if(LOG){
+				   sprintf(log_message, "\n    -----> replying with: '%d'\n",replymsg.data.traffic_state);
+				   writeTrafficLogFile(LOG_FILE_NAME,log_message);
+			   }
+			   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
+		  }
+
 	  }
 	  else
 	  {
-	   printf("\nERROR: Server received something, but could not handle it correctly\n");
+		  writeTrafficLogFile(LOG_FILE_NAME, "\nERROR: Server received something, but could not handle it correctly\n");
 	  }
 
 	}
 
-	// Remove the attach point name from the file system (i.e. /dev/name/local/<myname>)
-	ChannelDestroy(attach->chid);
-}
-void * noncritical_server_channel_thread(void * data){
+	printf("name detach\n");
 
+	return EXIT_SUCCESS;
 }
-
