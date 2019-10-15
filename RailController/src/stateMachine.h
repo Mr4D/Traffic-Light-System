@@ -1,20 +1,18 @@
 #pragma once
 
+#include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include <unistd.h>
 #include <time.h>
-#include <errno.h>
+#include <unistd.h>
 
 #include <sys/netmgr.h>
 #include <sys/neutrino.h>
 
-#include <traffic_types.h>
 #include "RailController.h"
+#include <traffic_types.h>
 
-void * railStateMachine(void * data);
+void *railStateMachine(void *data);
 void printState(rail_state_t state);
-
-

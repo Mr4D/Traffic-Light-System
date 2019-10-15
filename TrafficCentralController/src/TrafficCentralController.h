@@ -16,20 +16,18 @@
 /* tcc state requirements*/
 typedef struct {
 
-	traffic_state_data_t * i1_state_data;
-	traffic_state_data_t * i2_state_data;
-	rail_state_data_t * x1_state_data;
+	traffic_state_data_t *i1_state_data;
+	traffic_state_data_t *i2_state_data;
+	rail_state_data_t *x1_state_data;
 
 } tcc_state_data_t;
 
 typedef struct {
-	tcc_state_data_t * tcc_state_data;
+	tcc_state_data_t *tcc_state_data;
 } output_thread_data_t;
 
 typedef struct {
-	rail_state_data_t * x1_state_data;
+	rail_state_data_t *x1_state_data;
 } critical_server_thread_data_t;
-
-
 
 #endif /* TRAFFICCENTRALCONTROLLER_H_ */
