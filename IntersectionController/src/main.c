@@ -38,20 +38,6 @@ void initInputData(traffic_input_data_t *input_data, traffic_input_queue_t *inpu
 	pthread_rwlock_init(&input_data->rwlock_input, NULL);
 }
 
-void initTrafficStateData(traffic_state_data_t *traffic_state_data) {
-	traffic_state_data->current_state = INITIAL;
-	traffic_state_data->data_ready = false;
-	pthread_mutex_init(&traffic_state_data->mutex_state, NULL);
-	pthread_cond_init(&traffic_state_data->cond_state_changed, NULL);
-}
-
-void initRailStateData(rail_state_data_t *rail_state_data) {
-	rail_state_data->current_state = NO_TRAIN;
-	rail_state_data->data_ready = false;
-	pthread_mutex_init(&rail_state_data->mutex_state, NULL);
-	pthread_cond_init(&rail_state_data->cond_state_changed, NULL);
-}
-
 void initData(traffic_mode_data_t *traffic_mode_data,
 			  traffic_input_queue_t *input_queue,
 			  traffic_input_data_t *input_data,

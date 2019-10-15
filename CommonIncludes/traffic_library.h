@@ -11,6 +11,10 @@ typedef struct {
 
 } send_message_thread_data_t;
 
+void initTrafficStateData(traffic_state_data_t *traffic_state_data);
+
+void initRailStateData(rail_state_data_t *rail_state_data);
+
 void *sendMessage(void *data);
 
 name_attach_t *createChannel(const char *attach_point);
