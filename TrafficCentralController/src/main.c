@@ -48,8 +48,8 @@ int main(void) {
 
 	msg_data_t msg_send;
 	msg_send.client_id = TCC_CLIENT_ID;
-	msg_send.hdr.type = FAULT_MSG;
-	msg_send.data.fault = true;
+	msg_send.hdr.type = RESET_MSG;
+	msg_send.data.reset = true;
 
 	send_message_thread_data_t i1_send = {
 			I1_CRITICAL_CHANNEL_ATTACH_POINT,

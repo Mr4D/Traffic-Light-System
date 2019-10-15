@@ -19,6 +19,7 @@ void * critical_server_channel_thread(void * data) {
 		pthread_exit(NULL);
 	}
 	else {
+		thread_data->attach = attach;
 		printf("channel: %s\n", I1_CRITICAL_CHANNEL);
 	}
 
@@ -33,8 +34,7 @@ void * critical_server_channel_thread(void * data) {
 
 	living = 1;
 
-	bool reset = false;
-	while (!reset) {
+	while (living) {
 	// Do your MsgReceive's here now with the chid
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 	  printf("message received\n");
@@ -107,16 +107,13 @@ void * critical_server_channel_thread(void * data) {
 			   else if(msg.hdr.type == RESET_MSG){
 				   printf("RESET_MSG\n");
 				   if(msg.data.reset){
-					   reset = msg.data.reset;
-					   printf("reset: %d\n", reset);
-//					   pthread_mutex_lock(&reset_data->mutex);
-//						   reset_data->reset = msg.data.reset;
-//						   reset
-//						   reset_data->data_ready = true;
-//						   pthread_cond_signal(&reset_data->cond);
-//						   printf("signal()\n");
-//					   pthread_mutex_unlock(&reset_data->mutex);
-					   //printf("unlock()\n");
+					   pthread_mutex_lock(&reset_data->mutex);
+						   reset_data->reset = msg.data.reset;
+						   reset_data->data_ready = true;
+						   pthread_cond_signal(&reset_data->cond);
+						   printf("signal()\n");
+					   pthread_mutex_unlock(&reset_data->mutex);
+					   printf("unlock()\n");
 				   }
 				   sprintf(replymsg.data.buf,"OK");
 			   }
@@ -142,7 +139,6 @@ void * critical_server_channel_thread(void * data) {
 
 	printf("name detach\n");
 	// Remove the attach point name from the file system (i.e. /dev/name/local/<myname>)
-	name_detach(attach, NULL);
 
 	return EXIT_SUCCESS;
 }

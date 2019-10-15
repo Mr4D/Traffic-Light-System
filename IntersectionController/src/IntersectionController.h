@@ -71,5 +71,6 @@ typedef struct {
 	traffic_mode_data_t * traffic_mode_data;
 	fault_data_t * fault_data;
 	reset_data_t * reset_data;
+	name_attach_t * attach;
 } critical_server_data_t;
 
