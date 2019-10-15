@@ -14,6 +14,7 @@
 #include <sys/netmgr.h>
 
 #include <traffic_types.h>
+#include "RailController.h"
 
 
 #define AM335X_CONTROL_MODULE_BASE   (uint64_t) 0x44E10000

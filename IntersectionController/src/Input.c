@@ -1,6 +1,204 @@
 #include "Input.h"
 
 
+void * inputThread(void * data){
+
+	printf("inputThread()\n");
+	traffic_mode_t mode;
+	traffic_input_queue_t input_queue;
+
+	input_thread_data_t * thread_data = (input_thread_data_t*) data;
+
+
+
+	traffic_input_data_t * input_data = thread_data->input_data;
+	int change_state_channel_id = *thread_data->change_state_channel_id; // Create a communications channel
+	traffic_mode_data_t * traffic_mode_data = thread_data->traffic_mode_data;
+
+	int coid = ConnectAttach(ND_LOCAL_NODE, 0, change_state_channel_id, _NTO_SIDE_CHANNEL, 0);
+
+	int pulse_code = NULL_PULSE;
+			// gain access to device registers for "Control Module" and "GPIO1"
+	  uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
+	  uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE , AM335X_GPIO1_BASE);
+
+	  printf("ISR_area_data\n");
+	  // initalise the global stuct
+	  ISR_area_data.count_thread = 0;
+	  ISR_area_data.gpio1_base = gpio1_base;
+
+	  printf("memset\n");
+	  memset(&ISR_area_data.pevent, 0, sizeof(ISR_area_data.pevent));
+	  SIGEV_INTR_INIT (&ISR_area_data.pevent);
+	  ISR_area_data.pevent.sigev_notify = SIGEV_INTR;  // Setup for external interrupt
+
+
+	  printf("ThreadCtl\n");
+		// we also need to have the PROCMGR_AID_INTERRUPT and PROCMGR_AID_IO abilities enabled. For more information, see procmgr_ability().
+	  ThreadCtl( _NTO_TCTL_IO_PRIV , 1);// Request I/O privileges  for QNX7;
+	  printf("procmgr_ability\n");
+	 //procmgr_ability( 0, PROCMGR_AID_INTERRUPT | PROCMGR_AID_IO);
+
+	  printf("if( (control_module)&&(gpio1_base) )\n");
+	  if( (control_module)&&(gpio1_base) )
+	  {
+
+		volatile uint32_t val = 0;
+
+		// set DDR for LEDs to output and GPIO_28 to input
+		val = in32(gpio1_base + GPIO_OE); // read in current setup for GPIO1 port
+		val |= 1<<28;                     // set IO_BIT_28 high (1=input, 0=output)
+		out32(gpio1_base + GPIO_OE, val); // write value to input enable for data pins
+		val &= ~(LED0|LED1|LED2|LED3);    // write value to output enable
+		out32(gpio1_base + GPIO_OE, val); // write value to output enable for LED pins
+
+		val = in32(gpio1_base + GPIO_OE);
+		val &= ~SCL;                      // 0 for output
+		out32(gpio1_base + GPIO_OE, val); // write value to output enable for data pins
+
+
+		val = in32(gpio1_base + GPIO_DATAOUT);
+		val |= SCL;              // Set Clock Line High as per TTP229-BSF datasheet
+		out32(gpio1_base + GPIO_DATAOUT, val); // for 16-Key active-Low timing diagram
+
+
+		in32s(&val, 1, control_module + P9_12_pinConfig );
+		printf("Original pinmux configuration for GPIO1_28 = %#010x\n", val);
+
+		// set up pin mux for the pins we are going to use  (see page 1354 of TRM)
+		volatile _CONF_MODULE_PIN pinConfigGPMC; // Pin configuration strut
+		pinConfigGPMC.d32 = 0;
+		// Pin MUX register default setup for input (GPIO input, disable pull up/down - Mode 7)
+		pinConfigGPMC.b.conf_slewctrl = SLEW_SLOW;    // Select between faster or slower slew rate
+		pinConfigGPMC.b.conf_rxactive = RECV_ENABLE;  // Input enable value for the PAD
+		pinConfigGPMC.b.conf_putypesel= PU_PULL_UP;   // Pad pullup/pulldown type selection
+		pinConfigGPMC.b.conf_puden = PU_ENABLE;       // Pad pullup/pulldown enable
+		pinConfigGPMC.b.conf_mmode = PIN_MODE_7;      // Pad functional signal mux select 0 - 7
+
+		// Write to PinMux registers for the GPIO1_28
+		out32(control_module + P9_12_pinConfig, pinConfigGPMC.d32);
+		in32s(&val, 1, control_module + P9_12_pinConfig);   // Read it back
+		printf("New configuration register for GPIO1_28 = %#010x\n", val);
+
+		// Setup IRQ for SD0 pin ( see TRM page 4871 for register list)
+		out32(gpio1_base + GPIO_IRQSTATUS_SET_1, SD0);	// Write 1 to GPIO_IRQSTATUS_SET_1
+		out32(gpio1_base + GPIO_IRQWAKEN_1, SD0);    	// Write 1 to GPIO_IRQWAKEN_1
+		out32(gpio1_base + GPIO_FALLINGDETECT, SD0);    // set falling edge
+		out32(gpio1_base + GPIO_CLEARDATAOUT, SD0);     // clear GPIO_CLEARDATAOUT
+		out32(gpio1_base + GPIO_IRQSTATUS_1, SD0);      // clear any prior IRQs
+
+
+
+		int id = 0; // Attach interrupt Event to IRQ for GPIO1B  (upper 16 bits of port)
+
+
+		// Main code starts here
+		//The thread that calls InterruptWait() must be the one that called InterruptAttach().
+	//    id = InterruptAttach (GPIO1_IRQ, Inthandler, &ISR_area_data, sizeof(ISR_area_data), _NTO_INTR_FLAGS_TRK_MSK | _NTO_INTR_FLAGS_NO_UNMASK | _NTO_INTR_FLAGS_END);
+		id = InterruptAttach (GPIO1_IRQ, Inthandler, &ISR_area_data, sizeof(ISR_area_data), _NTO_INTR_FLAGS_TRK_MSK );
+
+		InterruptUnmask(GPIO1_IRQ, id);  // Enable a hardware interrupt
+
+		int i = 0;
+		printf( "Main entering loop and will call InterruptWait\n");
+
+
+
+		for(;;)
+		{
+			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
+			InterruptWait( 0, NULL );   // block this thread until an interrupt occurs  (Wait for a hardware interrupt)
+
+			// printf("do interrupt work here...\n");
+			int val = readKeypad( gpio1_base);
+
+
+			pthread_rwlock_rdlock(&input_data->rwlock_input);
+				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+			pthread_rwlock_unlock(&input_data->rwlock_input);
+
+			pthread_mutex_lock(&traffic_mode_data->mutex);
+				memcpy(&mode, &traffic_mode_data->mode, sizeof(mode));
+			pthread_mutex_unlock(&traffic_mode_data->mutex);
+
+			printf("mode: %d\n", mode);
+
+			bool sendpulse = false;
+			switch(val)
+			{
+				case NS_STR:
+					if(!containsTrafficInputBuf(&input_queue, NS_STR) && mode == OFF_PEAK){
+						writeTrafficInputBuf(&input_queue, NS_STR);
+						printf("after write input_queue.length: %d\n", input_queue.length);
+						pulse_code = NS_STR_INPUT_PULSE;
+						sendpulse = true;
+					}
+					break;
+				case EW_STR:
+					if(!containsTrafficInputBuf(&input_queue, EW_STR) && mode == OFF_PEAK){
+						writeTrafficInputBuf(&input_queue, EW_STR);
+
+						pulse_code = EW_STR_INPUT_PULSE;
+						sendpulse = true;
+					}
+					break;
+				case NS_R:
+					if(!containsTrafficInputBuf(&input_queue, NS_R) && mode == OFF_PEAK){
+						writeTrafficInputBuf(&input_queue, NS_R);
+
+						pulse_code = NS_R_INPUT_PULSE;
+						sendpulse = true;
+					}
+					break;
+				case EW_R:
+					if(!containsTrafficInputBuf(&input_queue, EW_R) && mode == OFF_PEAK){
+						writeTrafficInputBuf(&input_queue, EW_R);
+
+						pulse_code = EW_R_INPUT_PULSE;
+						sendpulse = true;
+					}
+					break;
+				case NS_P:
+					if(!containsTrafficInputBuf(&input_queue, NS_P)){
+						writeTrafficInputBuf(&input_queue, NS_P);
+
+						pulse_code = NS_P_INPUT_PULSE;
+						sendpulse = true;
+					}
+					break;
+				case EW_P:
+					if(!containsTrafficInputBuf(&input_queue, EW_P)){
+						writeTrafficInputBuf(&input_queue, EW_P);
+
+						pulse_code = EW_P_INPUT_PULSE;
+						sendpulse = true;
+					}
+					break;
+				default:
+					break;
+
+			}
+
+
+			pthread_rwlock_wrlock(&input_data->rwlock_input);
+				memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
+			pthread_rwlock_unlock(&input_data->rwlock_input);
+
+
+			printInputBuf(&input_queue);
+
+			if(sendpulse){
+				MsgSendPulse(coid,PULSE_PRIORITY,pulse_code,0);
+			}
+
+
+			//sched_yield();
+		}
+
+		 munmap_device_io(control_module, AM335X_CONTROL_MODULE_SIZE);
+	   }
+}
+
 void strobe_SCL(uintptr_t gpio_port_add) {
    uint32_t PortData;
    PortData = in32(gpio_port_add + GPIO_DATAOUT);// value that is currently on the GPIO port
@@ -188,39 +386,35 @@ const struct sigevent* Inthandler( void* area, int id )
 }
 
 
-int readTrafficInputBuf(traffic_input_buffer_t * buf){
+int readTrafficInputBuf(traffic_input_queue_t * input_queue){
 
 	int input_signal = -1;
 
-	if(buf->end_index > 0){
-		input_signal = buf->input_buffer[0];
+	// read first element of input_queue
+	if(input_queue->length > 0){
+		input_signal = input_queue->input_buffer[0];
 	}
 
 	return input_signal;
 }
 
-void writeTrafficInputBuf(int * buf, int * p_end_index, int input_signal) {
+void writeTrafficInputBuf(traffic_input_queue_t * input_queue, int input_signal) {
 
-	printf("write to buf: %d\n", input_signal);
+	if(input_queue->length < TRAFFIC_INPUT_COUNT){
+		input_queue->input_buffer[input_queue->length] = input_signal;
 
-	int end_index = *p_end_index;
-
-	if(end_index < TRAFFIC_INPUT_COUNT){
-		buf[end_index] = input_signal;
-
-		end_index++;
-		*p_end_index = end_index;
+		input_queue->length++;
 	}
 }
 
 // if not found returns -1
-int findTrafficInputBuf(int * buf, int end_index, int traffic_input) {
+int findTrafficInputBuf(traffic_input_queue_t * input_queue, int traffic_input) {
 
 	int signal_index = -1;
 
-	for(int i = 0; i < end_index; i++){
+	for(int i = 0; i < input_queue->length; i++){
 
-		if(buf[i] == traffic_input) {
+		if(input_queue->input_buffer[i] == traffic_input) {
 			signal_index = i;
 			break;
 		}
@@ -229,246 +423,45 @@ int findTrafficInputBuf(int * buf, int end_index, int traffic_input) {
 	return signal_index;
 }
 
-bool containsTrafficInputBuf(int * buf, int end_index, int traffic_input) {
+bool containsTrafficInputBuf(traffic_input_queue_t * input_queue, int traffic_input) {
 
 	bool found = false;
 
-	for(int i = 0; i < end_index; i++){
-
-		if(buf[i] == traffic_input) {
-			found = true;
-			break;
-		}
+	if (findTrafficInputBuf(input_queue, traffic_input) == -1){
+		found = true;
 	}
 
 	return found;
 }
 
-void deleteTrafficInputBufCell(traffic_input_data_t * input_data, int cell_val) {
-	printf("deleteCell()\n");
+void deleteTrafficInputBufCell(traffic_input_queue_t * input_queue, int cell_val) {
+
 	int delete_index = -1;
 
-	traffic_input_buffer_t input_queue;
-	pthread_rwlock_rdlock( &input_data->rwlock_input );
-		memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-	pthread_rwlock_unlock( &input_data->rwlock_input );
+	if((delete_index = findTrafficInputBuf(input_queue, cell_val)) != -1){
 
-	if((delete_index = findTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, cell_val)) != -1){
-
-		size_t size = sizeof(int) * (input_queue.end_index-(delete_index+1));
-		memcpy(&input_queue.input_buffer[delete_index], &input_queue.input_buffer[delete_index+1], size);
-		input_queue.end_index--;
+		size_t size = sizeof(int) * (input_queue->length-(delete_index+1));
+		memcpy(&input_queue->input_buffer[delete_index], &input_queue->input_buffer[delete_index+1], size);
+		input_queue->length--;
 	}
-
-	pthread_rwlock_wrlock( &input_data->rwlock_input );
-		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
-	pthread_rwlock_unlock( &input_data->rwlock_input );
 }
 
-void deleteTrafficInputBufCells(traffic_input_data_t * input_data, int * cell_vals, int cell_vals_length){
+void deleteTrafficInputBufCells(traffic_input_queue_t * input_queue, int * cell_vals, int cell_vals_length){
 
 	for(int i = 0; i < cell_vals_length; i++){
-		deleteTrafficInputBufCell(input_data, cell_vals[i]);
+		deleteTrafficInputBufCell(input_queue, cell_vals[i]);
 	}
 
 }
 
-void printInputBuf(int * buf, int length){
+void printInputBuf(traffic_input_queue_t * input_queue){
 
-	for(int i = 0; i < length; i++){
-		printf("[%d] ", buf[i]);
+	for(int i = 0; i < input_queue->length; i++){
+		printf("[%d] ", input_queue->input_buffer[i]);
 	}
 	printf("\n");
 
 }
 
-void * inputThread(void * data){
 
-	printf("inputThread()\n");
-	traffic_input_thread_data_t * input_thread_data = (traffic_input_thread_data_t*) data;
-	int input_buf[TRAFFIC_INPUT_COUNT];
-	traffic_mode_t mode = *input_thread_data->mode;
-	traffic_input_buffer_t input_queue;
-
-	traffic_input_data_t * input_data = input_thread_data->input_data;
-	int change_state_channel_id = input_thread_data->change_state_channel_id; // Create a communications channel
-	int coid = ConnectAttach(ND_LOCAL_NODE, 0, change_state_channel_id, _NTO_SIDE_CHANNEL, 0);
-
-	int pulse_code = NULL_PULSE;
-			// gain access to device registers for "Control Module" and "GPIO1"
-	  uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
-	  uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE , AM335X_GPIO1_BASE);
-
-	  printf("ISR_area_data\n");
-	  // initalise the global stuct
-	  ISR_area_data.count_thread = 0;
-	  ISR_area_data.gpio1_base = gpio1_base;
-
-	  printf("memset\n");
-	  memset(&ISR_area_data.pevent, 0, sizeof(ISR_area_data.pevent));
-	  SIGEV_INTR_INIT (&ISR_area_data.pevent);
-	  ISR_area_data.pevent.sigev_notify = SIGEV_INTR;  // Setup for external interrupt
-
-
-	  printf("ThreadCtl\n");
-		// we also need to have the PROCMGR_AID_INTERRUPT and PROCMGR_AID_IO abilities enabled. For more information, see procmgr_ability().
-	  ThreadCtl( _NTO_TCTL_IO_PRIV , 1);// Request I/O privileges  for QNX7;
-	  printf("procmgr_ability\n");
-	 //procmgr_ability( 0, PROCMGR_AID_INTERRUPT | PROCMGR_AID_IO);
-
-	  printf("if( (control_module)&&(gpio1_base) )\n");
-	  if( (control_module)&&(gpio1_base) )
-	  {
-
-		volatile uint32_t val = 0;
-
-		// set DDR for LEDs to output and GPIO_28 to input
-		val = in32(gpio1_base + GPIO_OE); // read in current setup for GPIO1 port
-		val |= 1<<28;                     // set IO_BIT_28 high (1=input, 0=output)
-		out32(gpio1_base + GPIO_OE, val); // write value to input enable for data pins
-		val &= ~(LED0|LED1|LED2|LED3);    // write value to output enable
-		out32(gpio1_base + GPIO_OE, val); // write value to output enable for LED pins
-
-		val = in32(gpio1_base + GPIO_OE);
-		val &= ~SCL;                      // 0 for output
-		out32(gpio1_base + GPIO_OE, val); // write value to output enable for data pins
-
-
-		val = in32(gpio1_base + GPIO_DATAOUT);
-		val |= SCL;              // Set Clock Line High as per TTP229-BSF datasheet
-		out32(gpio1_base + GPIO_DATAOUT, val); // for 16-Key active-Low timing diagram
-
-
-		in32s(&val, 1, control_module + P9_12_pinConfig );
-		printf("Original pinmux configuration for GPIO1_28 = %#010x\n", val);
-
-		// set up pin mux for the pins we are going to use  (see page 1354 of TRM)
-		volatile _CONF_MODULE_PIN pinConfigGPMC; // Pin configuration strut
-		pinConfigGPMC.d32 = 0;
-		// Pin MUX register default setup for input (GPIO input, disable pull up/down - Mode 7)
-		pinConfigGPMC.b.conf_slewctrl = SLEW_SLOW;    // Select between faster or slower slew rate
-		pinConfigGPMC.b.conf_rxactive = RECV_ENABLE;  // Input enable value for the PAD
-		pinConfigGPMC.b.conf_putypesel= PU_PULL_UP;   // Pad pullup/pulldown type selection
-		pinConfigGPMC.b.conf_puden = PU_ENABLE;       // Pad pullup/pulldown enable
-		pinConfigGPMC.b.conf_mmode = PIN_MODE_7;      // Pad functional signal mux select 0 - 7
-
-		// Write to PinMux registers for the GPIO1_28
-		out32(control_module + P9_12_pinConfig, pinConfigGPMC.d32);
-		in32s(&val, 1, control_module + P9_12_pinConfig);   // Read it back
-		printf("New configuration register for GPIO1_28 = %#010x\n", val);
-
-		// Setup IRQ for SD0 pin ( see TRM page 4871 for register list)
-		out32(gpio1_base + GPIO_IRQSTATUS_SET_1, SD0);	// Write 1 to GPIO_IRQSTATUS_SET_1
-		out32(gpio1_base + GPIO_IRQWAKEN_1, SD0);    	// Write 1 to GPIO_IRQWAKEN_1
-		out32(gpio1_base + GPIO_FALLINGDETECT, SD0);    // set falling edge
-		out32(gpio1_base + GPIO_CLEARDATAOUT, SD0);     // clear GPIO_CLEARDATAOUT
-		out32(gpio1_base + GPIO_IRQSTATUS_1, SD0);      // clear any prior IRQs
-
-
-
-		int id = 0; // Attach interrupt Event to IRQ for GPIO1B  (upper 16 bits of port)
-
-
-		// Main code starts here
-		//The thread that calls InterruptWait() must be the one that called InterruptAttach().
-	//    id = InterruptAttach (GPIO1_IRQ, Inthandler, &ISR_area_data, sizeof(ISR_area_data), _NTO_INTR_FLAGS_TRK_MSK | _NTO_INTR_FLAGS_NO_UNMASK | _NTO_INTR_FLAGS_END);
-		id = InterruptAttach (GPIO1_IRQ, Inthandler, &ISR_area_data, sizeof(ISR_area_data), _NTO_INTR_FLAGS_TRK_MSK );
-
-		InterruptUnmask(GPIO1_IRQ, id);  // Enable a hardware interrupt
-
-		int i = 0;
-		printf( "Main entering loop and will call InterruptWait\n");
-
-
-
-		for(;;)
-		{
-			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
-			InterruptWait( 0, NULL );   // block this thread until an interrupt occurs  (Wait for a hardware interrupt)
-
-			// printf("do interrupt work here...\n");
-			int val = readKeypad( gpio1_base);
-
-
-			pthread_rwlock_rdlock(&input_data->rwlock_input);
-				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-			pthread_rwlock_unlock(&input_data->rwlock_input);
-
-			printf("mode: %d\n", mode);
-
-			bool sendpulse = false;
-			switch(val)
-			{
-				case NS_STR:
-					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_STR) && mode == OFF_PEAK){
-						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_STR);
-						printf("after write input_queue.end_index: %d\n", input_queue.end_index);
-						pulse_code = NS_STR_INPUT_PULSE;
-						sendpulse = true;
-					}
-					break;
-				case EW_STR:
-					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_STR) && mode == OFF_PEAK){
-						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_STR);
-
-						pulse_code = EW_STR_INPUT_PULSE;
-						sendpulse = true;
-					}
-					break;
-				case NS_R:
-					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_R) && mode == OFF_PEAK){
-						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_R);
-
-						pulse_code = NS_R_INPUT_PULSE;
-						sendpulse = true;
-					}
-					break;
-				case EW_R:
-					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_R) && mode == OFF_PEAK){
-						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_R);
-
-						pulse_code = EW_R_INPUT_PULSE;
-						sendpulse = true;
-					}
-					break;
-				case NS_P:
-					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, NS_P)){
-						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, NS_P);
-
-						pulse_code = NS_P_INPUT_PULSE;
-						sendpulse = true;
-					}
-					break;
-				case EW_P:
-					if(!containsTrafficInputBuf(input_queue.input_buffer, input_queue.end_index, EW_P)){
-						writeTrafficInputBuf(input_queue.input_buffer, &input_queue.end_index, EW_P);
-
-						pulse_code = EW_P_INPUT_PULSE;
-						sendpulse = true;
-					}
-					break;
-				default:
-					break;
-
-			}
-
-
-			pthread_rwlock_wrlock(&input_data->rwlock_input);
-				memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
-			pthread_rwlock_unlock(&input_data->rwlock_input);
-
-
-			printInputBuf(input_queue.input_buffer, input_queue.end_index);
-
-			if(sendpulse){
-				MsgSendPulse(coid,PULSE_PRIORITY,pulse_code,0);
-			}
-
-
-			//sched_yield();
-		}
-
-		 munmap_device_io(control_module, AM335X_CONTROL_MODULE_SIZE);
-	   }
-}
 

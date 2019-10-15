@@ -7,6 +7,123 @@
 
 #include "stateMachine.h"
 
+void * trafficStateMachine(void * data) {
+
+	struct _pulse change_state_msg;
+	int rcvid;
+
+
+	traffic_state_t next_state = INITIAL;
+	traffic_state_t current_state = INITIAL;
+	traffic_state_t previous_state = INITIAL;
+	traffic_input_queue_t input_queue;
+	traffic_mode_t mode;
+	state_machine_thread_data_t * thread_data = (state_machine_thread_data_t*) data;
+
+	traffic_input_data_t * input_data = thread_data->input_data;
+	traffic_state_data_t * traffic_state_data = thread_data->traffic_state_data;
+	rail_state_data_t * rail_state_data = thread_data->rail_state_data;
+	int change_state_channel_id = *thread_data->change_state_channel_id;
+	traffic_mode_data_t * mode_data = thread_data->traffic_mode_data;
+
+	initiliseTimer(change_state_channel_id);
+
+
+
+	while(1) {
+
+		pthread_mutex_lock( &mode_data->mutex );
+			mode = mode_data->mode;
+		pthread_mutex_unlock( &mode_data->mutex );
+
+		// get input flags
+		pthread_rwlock_rdlock( &input_data->rwlock_input );
+			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+		pthread_rwlock_unlock( &input_data->rwlock_input );
+
+		//printInputBuf(input_queue.input_buffer, input_queue.end_index);
+
+		// get next state
+		if (mode == PEAK) {
+			next_state = changeTrafficState_peak(current_state, previous_state, &input_queue);
+		}
+		else if (mode == OFF_PEAK) {
+			next_state = changeTrafficState_offPeak(current_state, previous_state, &input_queue);
+		}
+		else {
+			if(LOG){
+				writeTrafficLogFile("Incorrect Mode, mode: %d\n", mode);
+			}
+		}
+
+
+
+		// update previous state
+		previous_state = current_state;
+		current_state = next_state;
+
+		// update current state
+		pthread_mutex_lock(&traffic_state_data->mutex_state);
+			traffic_state_data->current_state = current_state;
+
+			traffic_state_data->data_ready = true;
+			pthread_cond_broadcast(&traffic_state_data->cond_state_changed);
+		pthread_mutex_unlock(&traffic_state_data->mutex_state);
+
+
+
+		if(mode == PEAK){
+			updateTimersPeak(current_state);
+		}
+		else if(mode == OFF_PEAK){
+			updateTimersOffPeak(current_state);
+		}
+		else {
+			if(LOG){
+				writeTrafficLogFile(LOG_FILE_NAME, "Mode Error\n");
+			}
+		}
+
+
+		if(LOG){
+			// Print state info
+			stateToString(current_state, log_message);
+			strcat(log_message, "\n");
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+			sprintf(log_message, "Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+		}
+
+
+
+		// wait for timer
+		bool change_state = false;
+		while(!change_state){
+			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
+			if(mode == PEAK){
+				change_state = decideChangeStatePeak(&change_state_msg, current_state);
+			}
+			else if(mode == OFF_PEAK){
+				pthread_rwlock_rdlock( &input_data->rwlock_input );
+					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+				pthread_rwlock_unlock( &input_data->rwlock_input );
+				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
+			}
+		}
+
+
+		if(mode == PEAK){
+			clearInputPeak(input_data, current_state);
+		}
+		else if(mode == OFF_PEAK){
+			clearInputOffPeak(input_data, current_state);
+		}
+
+	}
+
+	return EXIT_SUCCESS;
+}
+
 void initiliseTimer(int chid) {
 
 
@@ -25,8 +142,10 @@ void initiliseTimer(int chid) {
 
 		// Create State Timer
 		if (timer_create(CLOCK_REALTIME, &state_timer_event, &state_timer_id) == -1) {	// create the timer, binding it to the event
-			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
-			perror(NULL);
+			if(LOG){
+				sprintf( log_message, "Couldn't create State Timer, errno: %d\n", errno);
+				writeTrafficLogFile(LOG_FILE_NAME, log_message);
+			}
 			exit(EXIT_FAILURE);
 		}
 
@@ -43,11 +162,12 @@ void initiliseTimer(int chid) {
 
 	}
 	else {
+		if(LOG){
+			sprintf( log_message, "Couldn't ConnectAttach to, chid: %d\n", chid);
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+		}
 
-		printf( (char *) stderr, "%c:  couldn't ConnectAttach to self!\n", gettid());
-		perror(NULL);
 		exit(EXIT_FAILURE);
-
 	}
 
 
@@ -66,8 +186,10 @@ void initiliseTimer(int chid) {
 
 		// Create Pedestrian Timer
 		if (timer_create(CLOCK_REALTIME, &ped_timer_event, &ped_timer_id) == -1) {	// create the timer, binding it to the event
-			printf( (char *) stderr, "%s:  couldn't create a timer, errno %d\n", gettid(), errno);
-			perror(NULL);
+			if(LOG){
+				sprintf( log_message, "Couldn't create Pedestrian Timer, errno: %d\n", errno);
+				writeTrafficLogFile(LOG_FILE_NAME, log_message);
+			}
 			exit(EXIT_FAILURE);
 		}
 
@@ -80,18 +202,21 @@ void initiliseTimer(int chid) {
 		itime_ped_timer.it_interval.tv_nsec = 0;	// 0 nano seconds 	(reload)
 	}
 	else {
+		if(LOG){
+			sprintf( log_message, "Couldn't ConnectAttach to, chid: %d\n", chid);
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+		}
 
-		printf( (char *) stderr, "%c:  couldn't ConnectAttach to self!\n", gettid());
-		perror(NULL);
 		exit(EXIT_FAILURE);
-
 	}
 }
 
-traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_queue) {
+traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_queue) {
 
 	printf("changeTrafficState_peak\n");
 	traffic_state_t next_state = INITIAL;
+
+
 
 	switch(current_state) {
 
@@ -116,7 +241,7 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 
 		// North south straight transitions
 		case NS_S_G_SEN:
-			if(findTrafficInputBuf(input_queue->input_buffer, input_queue->end_index, NS_P)){
+			if(containsTrafficInputBuf(input_queue, NS_P)){
 				next_state = NS_S_G_P_X;
 			}
 			else{
@@ -142,7 +267,7 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 
 		// East west straight transitions
 		case EW_S_G_SEN:
-			if(findTrafficInputBuf(input_queue->input_buffer, input_queue->end_index, EW_P)){
+			if(containsTrafficInputBuf(input_queue, EW_P)){
 				next_state = EW_S_G_P_X;
 			}
 			else {
@@ -193,15 +318,12 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 	return next_state;
 }
 
-traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_buffer_t * input_queue) {
+traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_queue) {
 
-	printf("changeTrafficState_offpeak()\n");
 
 	traffic_state_t next_state = INITIAL;
-	printf("input_queue->end_index %d\n", input_queue->end_index);
-	printInputBuf(input_queue->input_buffer, input_queue->end_index);
 	int input = readTrafficInputBuf(input_queue); // 0 == next input
-	printf("input %d\n", input);
+
 	switch(current_state) {
 
 		case INITIAL:
@@ -505,53 +627,52 @@ bool decideChangeStatePeak(struct _pulse * change_state_msg, traffic_state_t cur
 	bool change_state = false;
 
 	if(change_state_msg->code == STATE_TIMER_EXPIRE_PULSE){
+		writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
+
 		change_state = true;
-		printf("STATE_TIMER_EXPIRE_PULSE\n");
 	}
 	else if(change_state_msg->code == PED_TIMER_EXPIRE_PULSE){
+		writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
+
 		change_state = true;
-		printf("PED_TIMER_EXPIRE_PULSE\n");
 	}
 	else if(change_state_msg->code == NS_P_INPUT_PULSE){
+		writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
+
 		struct itimerspec ped_itimerspec;
 		timer_gettime( ped_timer_id, &ped_itimerspec);
-		printf("code: %d\n", change_state_msg->code);
 
 		if(current_state == NS_S_G_SEN && ped_itimerspec.it_value.tv_sec > 1){
-			printf("\t\tchange state true\n");
 			change_state = true;
 		}
-		printf("INPUT_PULSE\n");
 	}
 	else if(change_state_msg->code == EW_P_INPUT_PULSE){
+		writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
+
 		struct itimerspec ped_itimerspec;
 		timer_gettime( ped_timer_id, &ped_itimerspec);
-		printf("code: %d\n",change_state_msg->code);
 
 		if(current_state == EW_S_G_SEN && ped_itimerspec.it_value.tv_sec > 1){
-			printf("\t\tchange state true\n");
 			change_state = true;
 		}
-		printf("INPUT_PULSE\n");
 	}
 
 	return change_state;
 }
 
-bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_buffer_t * input_queue) {
+bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_queue_t * input_queue) {
 	bool change_state = false;
 
 	if ( change_state_msg->code == STATE_TIMER_EXPIRE_PULSE){
-		printf("STATE_TIMER_EXPIRE_PULSE\n");
-		// if in ew sens state and input is empty
-		printf("end_index: %d\n", input_queue->end_index);
-		if(!(current_state == EW_S_G_SEN && input_queue->end_index == 0)){
-			printf("end_index: %d\n", input_queue->end_index);
+		writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
+
+		if(!(current_state == EW_S_G_SEN && input_queue->length == 0)){
 			change_state = true;
 		}
 	}
 	else if ( change_state_msg->code == PED_TIMER_EXPIRE_PULSE) {
-		printf("PED_TIMER_EXPIRE_PULSE\n");
+		writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
+
 		change_state = true;
 	}
 	else if( change_state_msg->code == NS_STR_INPUT_PULSE ||
@@ -560,12 +681,10 @@ bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t 
 			change_state_msg->code == NS_P_INPUT_PULSE ||
 			change_state_msg->code == EW_P_INPUT_PULSE )	{
 
-		printf("INPUT_PULSE\n");
+		writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
 
 		struct itimerspec state_itimerspec;
 		timer_gettime( state_timer_id, &state_itimerspec);
-		printf("code: %d\n", change_state_msg->code);
-		printf("timer: %d\n", state_itimerspec.it_value.tv_sec);
 
 		if(current_state == EW_S_G_SEN && state_itimerspec.it_value.tv_sec == 0){
 			change_state = true;
@@ -577,239 +696,135 @@ bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t 
 
 void clearInputPeak(traffic_input_data_t * input_data, traffic_state_t state) {
 	// clear input signal
+	traffic_input_queue_t input_queue;
+
+	pthread_rwlock_rdlock( &input_data->rwlock_input );
+		memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+
 	if(state == NS_S_G_P_X){
-		deleteTrafficInputBufCell(input_data, NS_P);
+		deleteTrafficInputBufCell(&input_queue, NS_P);
 	}
 	else if (state == EW_S_G_P_X) {
-		deleteTrafficInputBufCell(input_data, EW_P);
+		deleteTrafficInputBufCell(&input_queue, EW_P);
 	}
+
+	pthread_rwlock_wrlock( &input_data->rwlock_input );
+		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
 }
 void clearInputOffPeak(traffic_input_data_t * input_data, traffic_state_t state){
+
+	traffic_input_queue_t input_queue;
+
+	pthread_rwlock_rdlock( &input_data->rwlock_input );
+		memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
+
 	if(state == NS_S_G_P_X){
 		int cell_count = 2;
 		int deletCells[] = {NS_STR,NS_P};
 
-		deleteTrafficInputBufCells(input_data, deletCells, cell_count);
+		deleteTrafficInputBufCells(&input_queue, deletCells, cell_count);
 	}
 	else if (state == EW_S_G_P_X) {
 		int cell_count = 2;
 		int deletCells[] = {EW_STR,EW_P};
 
-		deleteTrafficInputBufCells(input_data, deletCells, cell_count);
+		deleteTrafficInputBufCells(&input_queue, deletCells, cell_count);
 	}
 	if(state == NS_S_G_SEN || state == NS_S_G){
-		deleteTrafficInputBufCell(input_data, NS_STR);
+		deleteTrafficInputBufCell(&input_queue, NS_STR);
 	}
 	else if(state == EW_S_G_SEN || state == EW_S_G){
-		deleteTrafficInputBufCell(input_data, EW_STR);
+		deleteTrafficInputBufCell(&input_queue, EW_STR);
 	}
 	else if (state == NS_R_G) {
-		deleteTrafficInputBufCell(input_data, NS_R);
+		deleteTrafficInputBufCell(&input_queue, NS_R);
 	}
 	else if (state == EW_R_G) {
-		deleteTrafficInputBufCell(input_data, EW_R);
-	}
-}
-
-void * trafficStateMachine(void * data) {
-
-	printf("TrafficStateMachine()\n");
-
-	struct _pulse change_state_msg;
-	int change_state_channel_id;
-	int rcvid;
-
-
-	traffic_state_t next_state = INITIAL;
-	traffic_state_t current_state = INITIAL;
-	traffic_state_t previous_state = INITIAL;
-	traffic_input_buffer_t input_queue;
-
-	traffic_state_machine_thread_data_t * state_machine_thread_data = (traffic_state_machine_thread_data_t*) data;
-
-	traffic_input_data_t * input_data = state_machine_thread_data->input_data;
-	ic_state_data_t * ic_state_data = state_machine_thread_data->ic_state_data;
-	traffic_mode_t mode = *state_machine_thread_data->mode;
-
-
-	traffic_state_data_t * state_data = ic_state_data->traffic_state_data;
-	//rail_state_data_t * rail_state_data = ic_state_data->rail_state_data;
-
-
-	change_state_channel_id = state_machine_thread_data->change_state_channel_id; // Create a communications channel
-	initiliseTimer(change_state_channel_id);
-
-
-
-	while(1) {
-
-		// get input flags
-		pthread_rwlock_rdlock( &input_data->rwlock_input );
-			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-		pthread_rwlock_unlock( &input_data->rwlock_input );
-
-		printInputBuf(input_queue.input_buffer, input_queue.end_index);
-		// get next state
-		if (mode == PEAK) {
-			next_state = changeTrafficState_peak(current_state, previous_state, &input_queue);
-		}
-		else if (mode == OFF_PEAK) {
-			next_state = changeTrafficState_offPeak(current_state, previous_state, &input_queue);
-		}
-		else {
-			printf("Encountered an error\n");
-		}
-
-
-
-		// update previous state
-		previous_state = current_state;
-		current_state = next_state;
-
-		// update current state
-		pthread_mutex_lock(&state_data->mutex_state);
-			state_data->current_state = current_state;
-
-			state_data->data_ready_message = true;
-			state_data->data_ready_output = true;
-			pthread_cond_broadcast(&state_data->cond_state_changed);
-		pthread_mutex_unlock(&state_data->mutex_state);
-
-
-		if(mode == PEAK){
-			updateTimersPeak(current_state);
-		}
-		else if(mode == OFF_PEAK){
-			updateTimersOffPeak(current_state);
-		}
-		else {
-			printf("Mode Error\n");
-		}
-
-
-
-		// Print state info
-		printState(state_data->current_state);
-		printf("Timer:  %ld\n", itime_state_timer.it_value.tv_sec);
-
-
-
-
-		// wait for timer
-		bool change_state = false;
-		while(!change_state){
-			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
-			if(mode == PEAK){
-				change_state = decideChangeStatePeak(&change_state_msg, current_state);
-			}
-			else if(mode == OFF_PEAK){
-				pthread_rwlock_rdlock( &input_data->rwlock_input );
-					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-				pthread_rwlock_unlock( &input_data->rwlock_input );
-				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
-			}
-		}
-
-
-		if(mode == PEAK){
-			clearInputPeak(input_data, current_state);
-		}
-		else if(mode == OFF_PEAK){
-			clearInputOffPeak(input_data, current_state);
-		}
-
-
-		printf("\t\tCHANGE STATE\n");
-
+		deleteTrafficInputBufCell(&input_queue, EW_R);
 	}
 
-	return EXIT_SUCCESS;
+	pthread_rwlock_wrlock( &input_data->rwlock_input );
+		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
+	pthread_rwlock_unlock( &input_data->rwlock_input );
 }
 
-void printState(traffic_state_t state){
+
+void stateToString(traffic_state_t state, char * state_str) {
 
 	switch(state) {
+			case INITIAL:
+				sprintf(state_str,"INITIAL");
+				break;
 
-		case INITIAL:
-			printf("\tState: %d [INITIAL]\n", state);
-			break;
+			case ALL_RED:
+				sprintf(state_str,"ALL_RED");
+				break;
 
-		case ALL_RED:
-			printf("\tState: %d [ALLRED]\n", state);
-			break;
+			case FAULT:
+				sprintf(state_str,"FAULT");
+				break;
 
-		case FAULT:
-			printf("\tState: %d [FAULT]\n", state);
-			break;
+			case NS_S_G_SEN:
+				sprintf(state_str,"NS_S_G_SEN");
+				break;
 
-		case NS_S_G_SEN:
-			printf("\tState: %d [NS_S_G_SEN]\n", state);
-			break;
+			case NS_S_G_P_X:
+				sprintf(state_str,"NS_S_G_P_X");
+				break;
 
-		case NS_S_G_P_X:
-			printf("\tState: %d [NS_S_G_P_X]\n", state);
-			break;
+			case NS_S_G_P_F:
+				sprintf(state_str,"NS_S_G_P_F");
+				break;
 
-		case NS_S_G_P_F:
-			printf("\tState: %d [NS_S_G_P_F]\n", state);
-			break;
+			case NS_S_G:
+				sprintf(state_str,"NS_S_G");
+				break;
 
-		case NS_S_G:
-			printf("\tState: %d [NS_S_G]\n", state);
-			break;
+			case NS_S_Y:
+				sprintf(state_str,"NS_S_Y");
+				break;
 
-		case NS_S_Y:
-			printf("\tState: %d [NS_S_Y]\n", state);
-			break;
+			case EW_R_G:
+				sprintf(state_str,"EW_R_G");
+				break;
 
-		case EW_R_G:
-			printf("\tState: %d [EW_R_G]\n", state);
-			break;
+			case EW_R_Y:
+				sprintf(state_str,"EW_R_Y");
+				break;
 
-		case EW_R_Y:
-			printf("\tState: %d [EW_R_Y]\n", state);
-			break;
+			case EW_S_G_SEN:
+				sprintf(state_str,"EW_S_G_SEN");
+				break;
 
-		case EW_S_G_SEN:
-			printf("\tState: %d [EW_S_G_SEN]\n", state);
-			break;
+			case EW_S_G_P_X:
+				sprintf(state_str,"EW_S_G_P_X");
+				break;
 
-		case EW_S_G_P_X:
-			printf("\tState: %d [EW_S_G_P_X]\n", state);
-			break;
+			case EW_S_G_P_F:
+				sprintf(state_str,"EW_S_G_P_F");
+				break;
 
-		case EW_S_G_P_F:
-			printf("\tState: %d [EW_S_G_P_F]\n", state);
-			break;
+			case EW_S_G:
+				sprintf(state_str,"EW_S_G");
+				break;
 
-		case EW_S_G:
-			printf("\tState: %d [EW_S_G]\n", state);
-			break;
+			case EW_S_Y:
+				sprintf(state_str,"EW_S_Y");
+				break;
 
-		case EW_S_Y:
-			printf("\tState: %d [EW_S_Y]\n", state);
-			break;
+			case NS_R_G:
+				sprintf(state_str,"NS_R_G");
+				break;
 
-		case NS_R_G:
-			printf("\tState: %d [NS_R_G]\n", state);
-			break;
+			case NS_R_Y:
+				sprintf(state_str,"NS_R_Y");
+				break;
 
-		case NS_R_Y:
-			printf("\tState: %d [NS_R_Y]\n", state);
-			break;
+			default:
 
-		default:
-
-			break;
-	}
-
+				break;
+		}
 }
-
-//void printInputBuf(int * buf, int length) {
-//
-//	for(int i = 0; i < length; i++){
-//		printf("[%d] ", buf[i]);
-//	}
-//	printf("\n");
-//
-//}

@@ -19,6 +19,7 @@
 #include <sys/netmgr.h>
 
 #include <traffic_types.h>
+#include "RailController.h"
 
 #define DATA_SEND 0x40  // sets the Rs value high
 #define Co_Ctrl   0x00  // mode to tell LCD we are sending a single command

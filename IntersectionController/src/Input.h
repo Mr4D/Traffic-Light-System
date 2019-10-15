@@ -14,6 +14,7 @@
 #include <sys/netmgr.h>
 
 #include <traffic_types.h>
+#include "IntersectionController.h"
 
 
 #define AM335X_CONTROL_MODULE_BASE   (uint64_t) 0x44E10000
@@ -105,12 +106,12 @@ int readKeypad( uintptr_t gpio1_base);
 const struct sigevent* Inthandler( void* area, int id );
 void * inputThread(void * data);
 
-int readTrafficInputBuf(traffic_input_buffer_t * buf);
-void writeTrafficInputBuf(int * buf, int * p_end_index, int input_signal);
-int findTrafficInputBuf(int * buf, int end_index, int traffic_input);
-bool containsTrafficInputBuf(int * buf, int end_index, int traffic_input);
-void deleteTrafficInputBufCell(traffic_input_data_t * input_data, int cell_val);
-void deleteTrafficInputBufCells(traffic_input_data_t * input_data, int * cell_vals, int cell_vals_length);
-void printInputBuf(int * buf, int length);
+int readTrafficInputBuf(traffic_input_queue_t * input_queue);
+void writeTrafficInputBuf(traffic_input_queue_t * input_queue, int input_signal);
+int findTrafficInputBuf(traffic_input_queue_t * input_queue, int traffic_input);
+bool containsTrafficInputBuf(traffic_input_queue_t * input_queue, int traffic_input);
+void deleteTrafficInputBufCell(traffic_input_queue_t * input_queue, int cell_val);
+void deleteTrafficInputBufCells(traffic_input_queue_t * input_queue, int * cell_vals, int cell_vals_length);
+void printInputBuf(traffic_input_queue_t * input_queue);
 
 void printInputFlags(traffic_input_data_t * input_data);

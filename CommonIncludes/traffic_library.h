@@ -1,6 +1,15 @@
 #pragma once
 
 #include "traffic_types.h"
+#include "traffic_file_lib.h"
+
+typedef struct {
+	const char * attach_point;
+	msg_data_t * msg;
+	pthread_rwlock_t rwlock;
+} send_message_thread_data_t;
+
+void * sendMessage(void * data);
 
 name_attach_t *createChannel(const char *attach_point);
 

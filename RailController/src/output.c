@@ -24,6 +24,76 @@
  */
 
 
+void * LCD_Control(void * data){
+	/* RUN THIS AS THREAD */
+
+	int error;
+	int file;
+	int * filep = &file;
+
+	char L1[21] = 	{'B', 'O', 'O', 'M', ' ', 'G', 'A', 'T', 'E', 'S', ' ', '=' ,' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
+	char L2[21] = 	{'P', 'E', 'D', 'E', 'S', 'T', 'R', 'I', 'A', 'N', ' ', '=', ' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
+																				  //   13   14	 15   16   17   18	 19
+	ouput_thread_data_t * thread_data = (ouput_thread_data_t *) data;
+	rail_state_data_t * rail_state_data = thread_data->rail_state_data;
+	rail_state_t railOutputState;
+
+	error = openLCD(filep);
+
+	if (error != 0)
+	{
+		printf("Fatal Error: LCD could not initialize.");
+		exit(EXIT_FAILURE);
+	}
+
+	writeLCD(0,0,L1,filep);
+	writeLCD(1,0,L2,filep);
+
+
+	while (1)
+	{
+
+
+
+		// get rail state
+		pthread_mutex_lock(&rail_state_data->mutex_state);
+
+		while (!rail_state_data->data_ready) {
+			pthread_cond_wait(&rail_state_data->cond_state_changed, &rail_state_data->mutex_state);
+		}
+
+			railOutputState = rail_state_data->current_state;
+
+			rail_state_data->data_ready = false;
+		pthread_mutex_unlock(&rail_state_data->mutex_state);
+
+
+		switch(railOutputState)
+		{
+			case NO_TRAIN:
+				L1[12] = 'R';L1[13] = 'A';L1[14] = 'I';L1[15] = 'S';L1[16] = 'E';L1[17] = 'D';L2[18] = ' ';
+				L2[12] = 'O';L2[13] = 'P';L2[14] = 'E';L2[15] = 'N';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
+				writeLCD(0,0,L1,filep);
+				writeLCD(1,0,L2,filep);
+				break;
+
+			case TRAIN:
+				L1[12] = 'L';L1[13] = 'O';L1[14] = 'W';L1[15] = 'E';L1[16] = 'R';L1[17] = 'E';L2[18] = 'D';
+				L2[12] = 'C';L2[13] = 'L';L2[14] = 'O';L2[15] = 'S';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
+				writeLCD(0,0,L1,filep);
+				writeLCD(1,0,L2,filep);
+				break;
+
+			default:
+				L1[12] = 'L';L1[13] = 'O';L1[14] = 'W';L1[15] = 'E';L1[16] = 'R';L1[17] = 'E';L2[18] = 'D';
+				L2[12] = 'C';L2[13] = 'L';L2[14] = 'O';L2[15] = 'S';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
+				writeLCD(0,0,L1,filep);
+				writeLCD(1,0,L2,filep);
+				break;
+		}
+	}
+}
+
 // Writes to I2C
 int  I2cWrite_(int *fd, uint8_t Address, uint8_t mode, uint8_t *pBuffer, uint32_t NbData)
 {
@@ -204,58 +274,6 @@ int writeLCD(int row, int col, char write[], int* filep)
 
 
 
-void * LCD_Control(void * data){
-	/* RUN THIS AS THREAD */
-
-	int error;
-	int file;
-	int * filep = &file;
-
-	char L1[21] = 	{'B', 'O', 'O', 'M', ' ', 'G', 'A', 'T', 'E', 'S', ' ', '=' ,' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
-	char L2[21] = 	{'P', 'E', 'D', 'E', 'S', 'T', 'R', 'I', 'A', 'N', ' ', '=', ' ', ' ', 'N', 'U', 'L', 'L', ' ', ' '};
-																				  //   13   14	 15   16   17   18	 19
-
-	rail_crossing_state_data_t * rail_state_data = (rail_crossing_state_data_t *) data;
-	rail_state_t	railOutputState;
-
-	error = openLCD(filep);
-
-	if (error != 0)
-	{
-		printf("Fatal Error: LCD could not initialize.");
-		exit(EXIT_FAILURE);
-	}
-
-	writeLCD(0,0,L1,filep);
-	writeLCD(1,0,L2,filep);
-
-
-	while (1)
-	{
-
-
-
-		// get rail state
-		pthread_mutex_lock(&rail_state_data->mutex_state);
-
-		while (!rail_state_data->data_ready_output) {
-			pthread_cond_wait(&rail_state_data->cond_state_changed, &rail_state_data->mutex_state);
-		}
-
-			railOutputState = rail_state_data->current_state;
-
-			rail_state_data->data_ready_output = false;
-		pthread_mutex_unlock(&rail_state_data->mutex_state);
-
-
-		switch(railOutputState)
-		{
-			case NO_TRAIN:
-				L1[12] = 'R';L1[13] = 'A';L1[14] = 'I';L1[15] = 'S';L1[16] = 'E';L1[17] = 'D';L2[18] = ' ';
-				L2[12] = 'O';L2[13] = 'P';L2[14] = 'E';L2[15] = 'N';L2[16] = 'E';L2[17] = 'D';L2[18] = ' ';
-				writeLCD(0,0,L1,filep);
-				writeLCD(1,0,L2,filep);
-				break;
 
 			case TRAIN:
 				L1[12] = 'D';L1[13] = 'R';L1[14] = 'O';L1[15] = 'P';L1[16] = '\'';L1[17] = 'D';L2[18] = ' ';
