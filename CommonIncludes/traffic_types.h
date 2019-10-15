@@ -15,6 +15,7 @@
 #define BUF_SIZE 100
 
 #define I1_HOSTNAME "VM_x86_Target01"//"RMIT_BBB_v5_02"
+#define I2_HOSTNAME "RMIT_BBB_v5_03" //have no idea just change it
 #define TCC_HOSTNAME "VM_x86_Target02"//"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
 #define RAIL_HOSTNAME "RMIT_BBB_v5_07"
@@ -162,4 +163,10 @@ typedef struct {
 	} data;
 } msg_reply_t;
 
-
+typedef struct
+{
+	int intersection;
+	int aflag;
+	int bflag;
+	int cflag;
+} tool_data_t;
