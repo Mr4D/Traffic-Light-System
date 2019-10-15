@@ -3,6 +3,7 @@
 #define BUF_SIZE 100
 
 #define I1_HOSTNAME "RMIT_BBB_v5_02"
+#define I2_HOSTNAME "RMIT_BBB_v5_02"
 #define TCC_HOSTNAME "RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
 #define RAIL_HOSTNAME "RMIT_BBB_v5_07"
@@ -10,13 +11,15 @@
 
 #define TCC_CRITICAL_CHANNEL  "s3378373_state_recieve"
 #define I1_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
+#define I2_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
 #define RCC_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
+
 
 /* QNET Channels */
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
 #define I1_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" I1_HOSTNAME "/dev/name/local/" I1_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
+#define I2_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" I2_HOSTNAME "/dev/name/local/" I2_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
 #define RCC_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" RCC_HOSTNAME "/dev/name/local/" RCC_CRITICAL_CHANNEL
-
 /* Client IDs */
 #define I1_CLIENT_ID 1
 #define I2_CLIENT_ID 2

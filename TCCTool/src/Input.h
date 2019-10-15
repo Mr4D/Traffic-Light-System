@@ -20,5 +20,7 @@
 #include <sys/types.h>
 #include <traffic_types.h>
 
+
+
 #define MAXHOSTNAMELEN 20
 #define MAX_SIZE 50

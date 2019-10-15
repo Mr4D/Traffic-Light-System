@@ -39,7 +39,7 @@ void * critical_client_channel_thread(void * data){
 	msg_rail_state.hdr.subtype = 0x00;
 
 	while(1){
-		pthread_mutex_lock(&state_data->mutex_state);
+		pthread_mutex_lock(&stat_data->mutex_state);
 
 		while (state_data->produce_data){
 			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
