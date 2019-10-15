@@ -114,7 +114,7 @@ void * critical_server_channel_thread(void * data) {
 			   }
 
 			   if(LOG){
-				   sprintf(log_message, "\n    -----> replying with: '%s'\n",replymsg.data.buf);
+				   sprintf(log_message, "\n    -----> replying with: '%d'\n",replymsg.data.traffic_state);
 				   writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			   }
 			   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));

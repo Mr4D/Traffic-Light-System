@@ -48,8 +48,8 @@ int main(void) {
 
 	msg_data_t msg_send;
 	msg_send.client_id = TCC_CLIENT_ID;
-	msg_send.hdr.type = RAIL_STATE_MSG;
-	msg_send.data.rail_state = TRAIN;
+	msg_send.hdr.type = STATE_REQUEST_MSG;
+	//msg_send.data.rail_state = TRAIN;
 
 	send_message_thread_data_t i1_send = {
 			I1_CRITICAL_CHANNEL_ATTACH_POINT,
@@ -69,6 +69,6 @@ int main(void) {
 	//pthread_join(critical_server_channel, NULL);
 	//pthread_join(output, NULL);
 
-	printf("Main terminating");
+	printf("Main terminating\n");
 	return EXIT_SUCCESS;
 }
