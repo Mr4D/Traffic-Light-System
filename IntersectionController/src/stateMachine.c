@@ -202,6 +202,88 @@ void initiliseTimer(int chid) {
 	}
 }
 
+traffic_state_t handleResetSig(traffic_state_t current_state) {
+
+	printf("handleFaultSig()\n");
+	traffic_state_t next_state = INITIAL;
+
+	switch (current_state) {
+		case INITIAL:
+			next_state = INITIAL;
+			break;
+
+		case ALL_RED:
+			next_state = INITIAL;
+			break;
+
+		case NS_S_G_SEN:
+			next_state = NS_S_Y;
+			break;
+
+		case NS_S_G_P_X:
+			next_state = NS_S_Y;
+			break;
+
+		case NS_S_G_P_F:
+			next_state = NS_S_Y;
+			break;
+
+		case NS_S_G:
+			next_state = NS_S_Y;
+			break;
+
+		case NS_S_Y:
+			next_state = INITIAL;
+			break;
+
+		case EW_S_G_SEN:
+			next_state = EW_S_Y;
+			break;
+
+		case EW_S_G_P_X:
+			next_state = EW_S_Y;
+			break;
+
+		case EW_S_G_P_F:
+			next_state = EW_S_Y;
+			break;
+
+		case EW_S_G:
+			next_state = EW_S_Y;
+			break;
+
+		case EW_S_Y:
+			next_state = INITIAL;
+			break;
+
+		case NS_R_G:
+			next_state = NS_R_Y;
+			break;
+
+		case NS_R_Y:
+			next_state = INITIAL;
+			break;
+
+		case EW_R_G:
+			next_state = EW_R_Y;
+			break;
+
+		case EW_R_Y:
+			next_state = INITIAL;
+			break;
+		case FAULT:
+			next_state = INITIAL;
+			break;
+			
+		default:
+			next_state = FAULT;
+			break;
+	}
+
+	return next_state;
+}
+
+
 traffic_state_t handleFaultSig(traffic_state_t current_state) {
 
 	printf("handleFaultSig()\n");
@@ -691,7 +773,10 @@ bool decideChangeStatePeak(struct _pulse *change_state_msg, traffic_state_t curr
 
 	bool change_state = false;
 
-	if (change_state_msg->code == STATE_TIMER_EXPIRE_PULSE) {
+	if (change_state_msg->code == RESET_PULSE) {
+		writeTrafficLogFile(LOG_FILE_NAME, "RESET_PULSE\n");
+	}
+	else if (change_state_msg->code == STATE_TIMER_EXPIRE_PULSE) {
 		writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
 
 		change_state = true;

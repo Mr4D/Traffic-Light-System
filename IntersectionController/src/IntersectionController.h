@@ -13,6 +13,8 @@
 #define EW_R_INPUT_PULSE 6
 #define NS_P_INPUT_PULSE 7
 #define EW_P_INPUT_PULSE 8
+#define FAULT_PULSE 9
+#define RESET_PULSE 10
 
 #define TRAFFIC_INPUT_COUNT 6
 
@@ -27,7 +29,6 @@
 // Input Signal Buffer
 typedef struct {
 	int length;
-
 	int input_buffer[TRAFFIC_INPUT_COUNT];
 }traffic_input_queue_t;
 
@@ -63,7 +64,6 @@ typedef struct {
 	rail_state_data_t * rail_state_data;
 } output_thread_data_t;
 
-
 // critical server thread
 typedef struct {
 	traffic_state_data_t * traffic_state_data;
@@ -72,5 +72,6 @@ typedef struct {
 	fault_data_t * fault_data;
 	reset_data_t * reset_data;
 	name_attach_t * attach;
+	int * change_state_channel_id;
 } critical_server_data_t;
 

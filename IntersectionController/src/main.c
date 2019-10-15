@@ -21,9 +21,7 @@ void initFaultData(fault_data_t *fault_data) {
 
 void initResetData(reset_data_t *reset_data) {
 	reset_data->reset = false;
-	reset_data->data_ready = false;
 	pthread_mutex_init(&reset_data->mutex, NULL);
-	pthread_cond_init(&reset_data->cond, NULL);
 }
 
 void initInputQueue(traffic_input_queue_t *input_queue) {
@@ -95,6 +93,7 @@ void initData(traffic_mode_data_t *traffic_mode_data,
 	critical_server_data->traffic_mode_data = traffic_mode_data;
 	critical_server_data->fault_data = fault_data;
 	critical_server_data->reset_data = reset_data;
+	critical_server_data->change_state_channel_id = change_state_channel_id;
 }
 
 int main(void) {
