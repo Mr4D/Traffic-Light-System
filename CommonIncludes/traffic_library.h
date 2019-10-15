@@ -1,7 +1,7 @@
 #pragma once
 
-#include "traffic_types.h"
 #include "traffic_file_lib.h"
+#include "traffic_types.h"
 
 typedef struct {
 	const char * attach_point;
@@ -13,7 +13,7 @@ void * sendMessage(void * data);
 
 name_attach_t *createChannel(const char *attach_point);
 
-int connectChannel(const char * attach_point);
+int connectChannel(const char *attach_point);
 
 void handlePulse(msg_data_t *msg);
 

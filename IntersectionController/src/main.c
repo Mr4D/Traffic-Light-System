@@ -9,10 +9,66 @@
 #include "IC_MessagePassing.h"
 #include "IntersectionController.h"
 
+void initData(connection_id_data_t *tcc_critical_server_coid_data,
+			  traffic_mode_data_t *traffic_mode_data,
+			  traffic_input_queue_t *input_queue,
+			  traffic_input_data_t *input_data,
+			  traffic_state_data_t *traffic_state_data,
+			  rail_state_data_t *rail_state_data,
+			  state_machine_thread_data_t *state_machine_thread_data,
+			  input_thread_data_t *input_thread_data,
+			  output_thread_data_t *output_thread_data,
+			  critical_server_data_t *critical_server_data,
+			  non_critical_server_data_t *non_critical_server_data,
+			  int *change_state_channel_id
+			  ) {
+
+	tcc_critical_server_coid_data->coid = -1;
+	pthread_rwlock_init(&tcc_critical_server_coid_data->rwlock_input, NULL);
+
+	traffic_mode_data->mode = PEAK;
+	pthread_rwlock_init(&traffic_mode_data->rwlock_input, NULL);
+
+	input_queue->length = 0;
+	for (int i = 0; i < TRAFFIC_INPUT_COUNT; i++) {
+		input_queue->input_buffer[i] = 0;
+	}
+
+	input_data->input_queue = &input_queue;
+	pthread_rwlock_init(&input_data->rwlock_input, NULL);
+
+	traffic_state_data->current_state = INITIAL;
+	traffic_state_data->data_ready = false;
+	pthread_mutex_init(&traffic_state_data->mutex_state, NULL);
+		pthread_cond_init(&traffic_state_data->cond_state_changed, NULL);
+
+	rail_state_data->current_state = NO_TRAIN;
+	rail_state_data->data_ready = false;
+	pthread_mutex_init(&rail_state_data->mutex_state, NULL);
+		pthread_cond_init(&rail_state_data->cond_state_changed, NULL);
+
+	state_machine_thread_data->input_data = input_data;
+	state_machine_thread_data->traffic_state_data = traffic_state_data;
+	state_machine_thread_data->rail_state_data = rail_state_data;
+	state_machine_thread_data->change_state_channel_id = change_state_channel_id;
+	state_machine_thread_data->tcc_critical_server_coid_data = tcc_critical_server_coid_data;
+	state_machine_thread_data->traffic_mode_data = traffic_mode_data;
+
+	input_thread_data->input_data = input_data;
+	input_thread_data->change_state_channel_id = change_state_channel_id;
+	input_thread_data->traffic_mode_data = traffic_mode_data;
+
+	output_thread_data->traffic_state_data = traffic_state_data;
+	output_thread_data->rail_state_data = rail_state_data;
+
+	critical_server_data->rail_state_data = rail_state_data;
+	non_critical_server_data->traffic_mode_data = traffic_mode_data;
+}
+
 int main(void) {
 
-	FILE * fp;
-	if((fp = openTrafficLogFile(LOG_FILE_NAME)) == NULL){
+	FILE *fp;
+	if ((fp = openTrafficLogFile(LOG_FILE_NAME)) == NULL) {
 		printf("Failed to open log file: %s\n", LOG_FILE_NAME);
 	}
 	else {
@@ -20,6 +76,7 @@ int main(void) {
 		fclose(fp);
 	}
 
+	// Declare memory for all data
 	int change_state_channel_id = ChannelCreate(0);
 
 	traffic_state_data_t traffic_state_data = {
@@ -95,6 +152,31 @@ int main(void) {
 	};
 
 
+	connection_id_data_t tcc_critical_server_coid_data;
+	traffic_mode_data_t traffic_mode_data;
+	traffic_input_queue_t input_queue;
+	traffic_input_data_t input_data;
+	traffic_state_data_t traffic_state_data;
+	rail_state_data_t rail_state_data; // TODO: to update this data type
+	state_machine_thread_data_t state_machine_thread_data;
+	input_thread_data_t input_thread_data;
+	output_thread_data_t output_thread_data;
+	critical_server_data_t critical_server_data;
+	non_critical_server_data_t non_critical_server_data;
+
+	initData(&tcc_critical_server_coid_data,
+			 &traffic_mode_data,
+			 &input_queue,
+			 &input_data,
+			 &traffic_state_data,
+			 &rail_state_data,
+			 &state_machine_thread_data,
+			 &input_thread_data,
+			 &output_thread_data,
+			 &critical_server_data,
+			 &non_critical_server_data,
+			 change_state_channel_id);
+/
 	// messaging threads
 	pthread_t t_critical_server_channel;
 
@@ -114,8 +196,6 @@ int main(void) {
 	pthread_join(t_traffic_state_machine, NULL);
 //	pthread_join(t_output, NULL);
 	pthread_join(t_critical_server_channel, NULL);
-
-
 
 	printf("Main terminating");
 	return EXIT_SUCCESS;
