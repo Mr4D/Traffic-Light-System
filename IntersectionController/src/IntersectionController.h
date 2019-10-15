@@ -36,6 +36,14 @@ typedef struct {
 	pthread_rwlock_t rwlock_input;
 } traffic_input_data_t;
 
+typedef struct {
+	bool state_timer_timeout;
+	bool ped_timer_timeout;
+	bool ped_sense_timer_timeout;
+	bool input;
+	bool fault;
+	bool reset;
+}change_state_flags_t;
 
 // thread data
 
@@ -44,8 +52,8 @@ typedef struct {
 	traffic_input_data_t * input_data;
 	traffic_state_data_t * traffic_state_data;
 	rail_state_data_t * rail_state_data;
-	int * change_state_channel_id;
 	traffic_mode_data_t * traffic_mode_data;
+	change_state_flags_t * change_state_flags;
 	fault_data_t * fault_data;
 	reset_data_t * reset_data;
 } state_machine_thread_data_t;
@@ -53,8 +61,7 @@ typedef struct {
 // input thread
 typedef struct {
 	traffic_input_data_t * input_data;
-	int * change_state_channel_id;
-	traffic_mode_data_t * traffic_mode_data;
+	change_state_flags_t * change_state_flags;
 } input_thread_data_t;
 
 // output thread
@@ -69,7 +76,12 @@ typedef struct {
 	traffic_state_data_t * traffic_state_data;
 	rail_state_data_t * rail_state_data;
 	traffic_mode_data_t * traffic_mode_data;
+	change_state_flags_t * change_state_flags;
 	fault_data_t * fault_data;
 	reset_data_t * reset_data;
 } critical_server_data_t;
 
+typedef struct {
+	int * chid;
+	change_state_flags_t * change_state_flags;
+} timer_thread_data_t;

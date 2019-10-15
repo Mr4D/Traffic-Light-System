@@ -18,12 +18,17 @@ void initData(traffic_mode_data_t * traffic_mode_data,
 			  input_thread_data_t * input_thread_data,
 			  output_thread_data_t * output_thread_data,
 			  critical_server_data_t * critical_server_data,
-			  int * change_state_channel_id,
 			  fault_data_t * fault_data,
-			  reset_data_t * reset_data
+			  reset_data_t * reset_data,
+			  change_state_flags_t * change_state_flags
 			  ) {
 
-	*change_state_channel_id = ChannelCreate(0);
+	change_state_flags->state_timer_timeout = false;
+	change_state_flags->ped_timer_timeout = false;
+	change_state_flags->ped_sense_timer_timeout = false;
+	change_state_flags->input = false;
+	change_state_flags->fault = false;
+	change_state_flags->reset = false;
 
 	traffic_mode_data->mode = PEAK;
 	pthread_rwlock_init(&traffic_mode_data->rwlock, NULL);
@@ -57,14 +62,13 @@ void initData(traffic_mode_data_t * traffic_mode_data,
 	state_machine_thread_data->input_data = input_data;
 	state_machine_thread_data->traffic_state_data = traffic_state_data;
 	state_machine_thread_data->rail_state_data = rail_state_data;
-	state_machine_thread_data->change_state_channel_id = change_state_channel_id;
 	state_machine_thread_data->traffic_mode_data = traffic_mode_data;
+	state_machine_thread_data->change_state_flags = change_state_flags;
 	state_machine_thread_data->fault_data = fault_data;
 	state_machine_thread_data->reset_data = reset_data;
 
 	input_thread_data->input_data = input_data;
-	input_thread_data->change_state_channel_id = change_state_channel_id;
-	input_thread_data->traffic_mode_data = traffic_mode_data;
+	input_thread_data->change_state_flags = change_state_flags;
 
 	output_thread_data->traffic_state_data = traffic_state_data;
 	output_thread_data->rail_state_data = rail_state_data;
@@ -72,6 +76,7 @@ void initData(traffic_mode_data_t * traffic_mode_data,
 	critical_server_data->rail_state_data = traffic_state_data;
 	critical_server_data->rail_state_data = rail_state_data;
 	critical_server_data->traffic_mode_data = traffic_mode_data;
+	critical_server_data->change_state_flags = change_state_flags;
 	critical_server_data->fault_data = fault_data;
 	critical_server_data->reset_data = reset_data;
 }
@@ -90,7 +95,6 @@ int main(void) {
 
 	while(1){
 		// Declare memory for all data
-		int change_state_channel_id;
 		traffic_mode_data_t traffic_mode_data;
 		traffic_input_queue_t input_queue;
 		traffic_input_data_t input_data;
@@ -102,6 +106,7 @@ int main(void) {
 		critical_server_data_t critical_server_data;
 		fault_data_t fault_data;
 		reset_data_t reset_data;
+		change_state_flags_t change_state_flags;
 
 		printf("init()\n");
 		initData(&traffic_mode_data,
@@ -113,9 +118,9 @@ int main(void) {
 				 &input_thread_data,
 				 &output_thread_data,
 				 &critical_server_data,
-				 &change_state_channel_id,
 				 &fault_data,
-				 &reset_data);
+				 &reset_data,
+				 &change_state_flags);
 
 
 		// messaging threads

@@ -11,6 +11,7 @@ void * critical_server_channel_thread(void * data) {
 	traffic_mode_data_t * traffic_mode_data = thread_data->traffic_mode_data;
 	fault_data_t * fault_data = thread_data->fault_data;
 	reset_data_t * reset_data = thread_data->reset_data;
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
 	name_attach_t * attach;
 
 	// Create a local name (/dev/name/...)
@@ -19,8 +20,10 @@ void * critical_server_channel_thread(void * data) {
 		pthread_exit(NULL);
 	}
 	else {
+		//thread_data->name_attach = name_attach;
 		printf("channel: %s\n", I1_CRITICAL_CHANNEL);
 	}
+
 
 
 	msg_data_t msg;
@@ -102,6 +105,11 @@ void * critical_server_channel_thread(void * data) {
 					   fault_data->fault = msg.data.fault;
 				   pthread_mutex_unlock(&fault_data->mutex);
 
+				   pthread_sleepon_lock();
+						change_state_flags->fault = true;
+						pthread_sleepon_signal(change_state_flags);
+					pthread_sleepon_unlock();
+
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == RESET_MSG){
@@ -109,14 +117,10 @@ void * critical_server_channel_thread(void * data) {
 				   if(msg.data.reset){
 					   reset = msg.data.reset;
 					   printf("reset: %d\n", reset);
-//					   pthread_mutex_lock(&reset_data->mutex);
-//						   reset_data->reset = msg.data.reset;
-//						   reset
-//						   reset_data->data_ready = true;
-//						   pthread_cond_signal(&reset_data->cond);
-//						   printf("signal()\n");
-//					   pthread_mutex_unlock(&reset_data->mutex);
-					   //printf("unlock()\n");
+					   pthread_sleepon_lock();
+							change_state_flags->reset = true;
+							pthread_sleepon_signal(change_state_flags);
+						pthread_sleepon_unlock();
 				   }
 				   sprintf(replymsg.data.buf,"OK");
 			   }

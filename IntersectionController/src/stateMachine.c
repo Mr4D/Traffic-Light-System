@@ -7,10 +7,41 @@
 
 #include "stateMachine.h"
 
-void *trafficStateMachine(void *data) {
+void * timerThread (void * data){
 
 	struct _pulse change_state_msg;
 	int rcvid;
+
+	timer_thread_data_t * thread_data = (timer_thread_data_t*)data;
+	int chid = *thread_data->chid;
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
+
+	while(1){
+		rcvid = MsgReceivePulse(chid, &change_state_msg, sizeof(change_state_msg), NULL);
+
+		if (change_state_msg.code == STATE_TIMER_EXPIRE_PULSE) {
+			writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
+
+			pthread_sleepon_lock();
+				change_state_flags->state_timer_timeout = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
+		}
+		else if (change_state_msg.code == PED_TIMER_EXPIRE_PULSE) {
+			writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
+
+			pthread_sleepon_lock();
+				change_state_flags->ped_timer_timeout = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
+		}
+	}
+
+}
+
+void * trafficStateMachine(void *data) {
+
+
 
 	traffic_state_t next_state = INITIAL;
 	traffic_state_t current_state = INITIAL;
@@ -25,15 +56,20 @@ void *trafficStateMachine(void *data) {
 	traffic_input_data_t *input_data = thread_data->input_data;
 	traffic_state_data_t *traffic_state_data = thread_data->traffic_state_data;
 	rail_state_data_t *rail_state_data = thread_data->rail_state_data;
-	int change_state_channel_id = *thread_data->change_state_channel_id;
 	traffic_mode_data_t * mode_data = thread_data->traffic_mode_data;
 	fault_data_t * fault_data = thread_data->fault_data;
-
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
 
 	
+	int change_state_channel_id = ChannelCreate(0);
 	initiliseTimer(change_state_channel_id);
 
+	timer_thread_data_t timer_thread_data = {
+			&change_state_channel_id,
+			change_state_flags
+	};
 
+	pthread_create(NULL, NULL, &timerThread, &timer_thread_data);
 	while (1) {
 		pthread_rwlock_rdlock( &mode_data->rwlock );
 			mode = mode_data->mode;
@@ -100,18 +136,37 @@ void *trafficStateMachine(void *data) {
 		// wait for timer
 		bool change_state = false;
 		while (!change_state) {
+			pthread_sleepon_lock();
+				pthread_sleepon_wait(change_state_flags);
 
-			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
+				printf("flag: %d\n", change_state_flags->state_timer_timeout);
+				printf("flag: %d\n", change_state_flags->ped_timer_timeout);
+				printf("flag: %d\n", change_state_flags->ped_sense_timer_timeout);
+				printf("flag: %d\n", change_state_flags->input);
+				printf("flag: %d\n", change_state_flags->fault);
+				printf("flag: %d\n", change_state_flags->reset);
 
-			if (mode == PEAK) {
-				change_state = decideChangeStatePeak(&change_state_msg, current_state);
-			}
-			else if (mode == OFF_PEAK) {
-				pthread_rwlock_rdlock(&input_data->rwlock_input);
-					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-				pthread_rwlock_unlock(&input_data->rwlock_input);
-				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
-			}
+				if(change_state_flags->state_timer_timeout){
+					change_state = true;
+				}
+				else if (change_state_flags->ped_timer_timeout){
+					change_state = true;
+				}
+			pthread_sleepon_unlock();
+
+
+
+//			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
+//
+//			if (mode == PEAK) {
+//				change_state = decideChangeStatePeak(&change_state_msg, current_state);
+//			}
+//			else if (mode == OFF_PEAK) {
+//				pthread_rwlock_rdlock(&input_data->rwlock_input);
+//					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+//				pthread_rwlock_unlock(&input_data->rwlock_input);
+//				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
+//			}
 		}
 
 		if (mode == PEAK) {
@@ -739,7 +794,7 @@ bool decideChangeStateOffPeak(struct _pulse *change_state_msg, traffic_state_t c
 
 		change_state = true;
 	}
-	else if (change_state_msg->code == NS_STR_INPUT_PULSE ||
+	else if (  change_state_msg->code == NS_STR_INPUT_PULSE ||
 			   change_state_msg->code == NS_R_INPUT_PULSE ||
 			   change_state_msg->code == EW_R_INPUT_PULSE ||
 			   change_state_msg->code == NS_P_INPUT_PULSE ||
