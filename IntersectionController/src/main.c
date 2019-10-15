@@ -22,26 +22,6 @@ int main(void) {
 
 	int change_state_channel_id = ChannelCreate(0);
 
-	connection_id_data_t tcc_critical_server_coid_data = {
-			-1,
-			PTHREAD_RWLOCK_INITIALIZER
-	};
-
-	traffic_mode_data_t traffic_mode_data = {
-		PEAK,
-		PTHREAD_RWLOCK_INITIALIZER
-	};
-
-	traffic_input_queue_t input_queue = {
-			0,
-			{0}
-	};
-
-	traffic_input_data_t input_data = {
-			&input_queue,
-			PTHREAD_RWLOCK_INITIALIZER
-	};
-
 	traffic_state_data_t traffic_state_data = {
 
 		INITIAL, //change to INITIAL
@@ -57,13 +37,41 @@ int main(void) {
 		PTHREAD_COND_INITIALIZER
 	};
 
+	traffic_mode_data_t traffic_mode_data = {
+		PEAK,
+		PTHREAD_MUTEX_INITIALIZER
+	};
+
+	fault_data_t fault_data = {
+		false,
+		PTHREAD_MUTEX_INITIALIZER
+	};
+
+	reset_data_t reset_data = {
+		false,
+		PTHREAD_MUTEX_INITIALIZER
+	};
+
+
+
+	traffic_input_queue_t input_queue = {
+			0,
+			{0}
+	};
+
+	traffic_input_data_t input_data = {
+			&input_queue,
+			PTHREAD_RWLOCK_INITIALIZER
+	};
+
 	state_machine_thread_data_t state_machine_thread_data = {
 			&input_data,
 			&traffic_state_data,
 			&rail_state_data,
 			&change_state_channel_id,
-			&tcc_critical_server_coid_data,
-			&traffic_mode_data
+			&traffic_mode_data,
+			&fault_data,
+			&reset_data
 	};
 
 	input_thread_data_t input_thread_data = {
@@ -79,38 +87,20 @@ int main(void) {
 
 
 	critical_server_data_t critical_server_data = {
-			&rail_state_data
+			&traffic_state_data,
+			&rail_state_data,
+			&traffic_mode_data,
+			&fault_data,
+			&reset_data
 	};
 
-	non_critical_server_data_t non_critical_server_data = {
-			&traffic_mode_data
-	};
 
 	// messaging threads
-	pthread_t t_tcc_client_connect;
 	pthread_t t_critical_server_channel;
 
 	// create critical channel to listen for commands from tcc
 	pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &critical_server_data);
 
-	connect_channel_thread_data_t tcc_connect_channel_thread_data = {
-			&tcc_critical_server_coid_data,
-			TCC_CRITICAL_CHANNEL_ATTACH_POINT,
-			3,
-			5
-	};
-
-	printf("Attempting to connect: %s\n", tcc_connect_channel_thread_data.attach_point);
-	pthread_create(&t_tcc_client_connect, NULL, &connectChannelThread, &tcc_connect_channel_thread_data);
-	int retval;
-	pthread_join(t_tcc_client_connect, &retval);
-
-	if(retval == EXIT_SUCCESS){
-		printf("\tConnected: %s\n", tcc_connect_channel_thread_data.attach_point);
-	}
-	else if(retval == EXIT_FAILURE) {
-		printf("\tConnection Failed\n");
-	}
 
 	pthread_t t_input;
 	pthread_t t_traffic_state_machine;
@@ -121,7 +111,7 @@ int main(void) {
 	//pthread_create(&t_output, NULL, LCD_Control, &output_thread_data);
 
 	//pthread_join(t_input, NULL);
-	//pthread_join(t_traffic_state_machine, NULL);
+	pthread_join(t_traffic_state_machine, NULL);
 //	pthread_join(t_output, NULL);
 	pthread_join(t_critical_server_channel, NULL);
 

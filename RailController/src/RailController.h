@@ -9,6 +9,8 @@
 #define RAILCONTROLLER_H_
 
 #include <traffic_file_lib.h>
+#include <traffic_library.h>
+#include <traffic_types.h>
 
 #define NULL_PULSE 0
 #define TRAIN_INPUT_PULSE 1

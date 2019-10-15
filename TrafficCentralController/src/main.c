@@ -25,7 +25,8 @@ int main(void) {
 	rail_state_data_t x1_state_data = {
 		NO_TRAIN,
 		false,
-		PTHREAD_MUTEX_INITIALIZER
+		PTHREAD_MUTEX_INITIALIZER,
+		PTHREAD_COND_INITIALIZER
 	};
 
 	tcc_state_data_t tcc_state_data = {
@@ -38,24 +39,35 @@ int main(void) {
 			&tcc_state_data
 	};
 
-	critical_client_channel_thread_data_t critical_client_channel_thread_data = {
-
+	critical_server_thread_data_t critical_server_thread_data = {
+			&x1_state_data
 	};
 
 	pthread_t output;
 	pthread_t critical_server_channel;
-	pthread_t critical_client_channel;
 
-	pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &tcc_state_data);
-	pthread_create(&critical_client_channel, NULL, &critical_client_channel_thread, &tcc_state_data);
+	msg_data_t msg_send;
+	msg_send.client_id = TCC_CLIENT_ID;
+	msg_send.hdr.type = RAIL_STATE_MSG;
+	msg_send.data.rail_state = TRAIN;
 
-	pthread_create(&output, NULL, &t_output, &tcc_state_data);
+	send_message_thread_data_t i1_send = {
+			I1_CRITICAL_CHANNEL_ATTACH_POINT,
+		   &msg_send
+	};
+
+	pthread_t send;
+	pthread_create(&send, NULL, &sendMessage, &i1_send);
+	pthread_join(send, NULL);
 
 
-	pthread_join(critical_server_channel, NULL);
-	pthread_join(critical_client_channel, NULL);
+	//pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &critical_server_thread_data);
 
-	pthread_join(output, NULL);
+	//pthread_create(&output, NULL, &t_output, &output_thread_data);
+
+
+	//pthread_join(critical_server_channel, NULL);
+	//pthread_join(output, NULL);
 
 	printf("Main terminating");
 	return EXIT_SUCCESS;

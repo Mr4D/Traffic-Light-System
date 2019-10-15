@@ -14,8 +14,8 @@
 
 #define BUF_SIZE 100
 
-#define I1_HOSTNAME "RMIT_BBB_v5_02"
-#define TCC_HOSTNAME "RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
+#define I1_HOSTNAME "VM_x86_Target01"//"RMIT_BBB_v5_02"
+#define TCC_HOSTNAME "VM_x86_Target02"//"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
 #define RAIL_HOSTNAME "RMIT_BBB_v5_07"
 
@@ -35,6 +35,16 @@
 #define TCC_CLIENT_ID 3
 #define X1_CLIENT_ID 4
 #define RCC_CLIENT_ID 5
+
+
+/* Message Types */
+#define STATE_REQUEST_MSG _IO_MAX + 1
+#define RAIL_STATE_MSG _IO_MAX + 2
+#define MODE_MSG _IO_MAX + 3
+#define FAULT_MSG _IO_MAX + 4
+#define RESET_MSG _IO_MAX + 5
+#define REPLY_MSG _IO_MAX + 6
+
 
 
 #define PULSE_PRIORITY 10
@@ -80,12 +90,10 @@ typedef enum {
 	NO_TRAIN
 } rail_state_t;
 
-typedef union {
-	traffic_state_t traffic_state;
-	rail_state_t rail_state;
-} state_t;
-
-
+typedef enum {
+    PEAK,
+    OFF_PEAK
+} traffic_mode_t;
 
 /* Struct for r/w locking of traffic states */
 typedef struct {
@@ -110,20 +118,46 @@ typedef struct {
 
 } rail_state_data_t;
 
+typedef struct {
+	traffic_mode_t mode;
+	pthread_mutex_t mutex;
+} traffic_mode_data_t;
+
+/* Struct for r/w locking of rail states*/
+typedef struct {
+	bool fault;	
+	pthread_mutex_t mutex;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+} fault_data_t;
+
+/* Struct for r/w locking of rail states*/
+typedef struct {
+	bool reset;	
+	pthread_mutex_t mutex;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+} reset_data_t;
+
 
 typedef struct {
 	struct _pulse hdr; // Our real data comes after this header
 	int client_id;
-	state_t state;
+	union {
+		traffic_state_t traffic_state;
+		rail_state_t rail_state;
+		traffic_mode_t mode;
+		bool fault;
+		bool reset;
+	} data;
 } msg_data_t;
 
 typedef struct {
 	struct _pulse hdr;  // Our real data comes after this header
-    char buf[BUF_SIZE]; // Message we send back to clients to tell them the messages was processed correctly.
+	union {
+		char buf[BUF_SIZE]; // Message we send back to clients to tell them the messages was processed correctly.
+		traffic_state_t traffic_state;
+		rail_state_t rail_state;
+		traffic_mode_t mode;
+		bool fault;
+		bool reset;
+	} data;
 } msg_reply_t;
 
-typedef struct {
-	int coid;
-	pthread_rwlock_t rwlock_input;
-} connection_id_data_t;
 

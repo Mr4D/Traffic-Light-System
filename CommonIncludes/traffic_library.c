@@ -1,41 +1,49 @@
 #include "traffic_library.h"
 
-void * connectChannelThread(void * data){
-	connect_channel_thread_data_t * thread_data = (connect_channel_thread_data_t*)data;
+void * sendMessage(void * data){
 
-	int retval = EXIT_FAILURE;
+	send_message_thread_data_t * thread_data = (send_message_thread_data_t *) data;
 
-	int coid;
-	connection_id_data_t * coid_data = thread_data->coid_data;
-	char * attach_point = thread_data->attach_point;
-	int max_attempts = thread_data->max_attempts;
-	int wait_time = thread_data->wait_time;
 
-	int attempts = 0;
-	while(attempts < max_attempts){
+	msg_data_t msg;
+	pthread_rwlock_rdlock(&thread_data->rwlock);
+		memcpy(&msg, thread_data->msg, sizeof(msg));
+	pthread_rwlock_unlock(&thread_data->rwlock);
 
-		if((coid = connectChannel(attach_point)) == -1){
-			sleep(wait_time);
-		}
-		else {
-			retval = EXIT_SUCCESS;
-			break;
-		}
+	printf("msg.type: %d\n", msg.hdr.type);
 
-		attempts++;
+	msg_reply_t reply;
+
+	int server_coid = -1;
+
+
+	printf("  ---> Trying to connect to server named: %s\n", thread_data->attach_point);
+	if ((server_coid = name_open(thread_data->attach_point, 0)) == -1) {
+		printf("\n    ERROR, could not connect to server!\n\n");
 	}
 
-	pthread_rwlock_wrlock( &coid_data->rwlock_input );
-		coid_data->coid = coid;
-	pthread_rwlock_unlock( &coid_data->rwlock_input );
 
-	return retval;
+
+	printf("Connection established to: %s\n", thread_data->attach_point);
+
+	fflush(stdout);
+
+
+	if (MsgSend(server_coid, &msg, sizeof(msg), &reply, sizeof(reply)) == -1) {
+		printf(" Error data '%d' NOT sent to server\n", msg.data.traffic_state);
+			// maybe we did not get a reply from the server
+	}
+	else { // now process the reply
+		printf("   -->Reply is: '%d'\n", reply.data.traffic_state);
+	}
+
+
+	ConnectDetach(server_coid);
 }
-
 
 name_attach_t * createChannel(const char *attach_point) {
 
-	name_attach_t *attach = NULL;
+	name_attach_t * attach = NULL;
 
 	// Create a local name (/dev/name/...)
 	if ((attach = name_attach(NULL, attach_point, 0)) == NULL) {
@@ -49,19 +57,6 @@ name_attach_t * createChannel(const char *attach_point) {
 	return attach;
 }
 
-int connectChannel(const char * attach_point) {
-
-	int server_coid = -1;
-
-	sprintf(log_message,"  ---> Trying to connect to server: %s\n", attach_point);
-	writeTrafficLogFile(LOG_FILE_NAME,log_message);
-
-	if ((server_coid = name_open(attach_point, 0)) == -1) {
-		writeTrafficLogFile(LOG_FILE_NAME,"\n    ERROR, could not connect to server!\n\n");
-	}
-
-	return server_coid;
-}
 
 void handlePulse(msg_data_t *msg) {
 	switch (msg->hdr.code) {

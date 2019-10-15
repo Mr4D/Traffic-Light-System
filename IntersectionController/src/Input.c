@@ -117,9 +117,9 @@ void * inputThread(void * data){
 				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
-			pthread_rwlock_rdlock(&traffic_mode_data->rwlock_input);
+			pthread_mutex_lock(&traffic_mode_data->mutex);
 				memcpy(&mode, &traffic_mode_data->mode, sizeof(mode));
-			pthread_rwlock_unlock(&traffic_mode_data->rwlock_input);
+			pthread_mutex_unlock(&traffic_mode_data->mutex);
 
 			printf("mode: %d\n", mode);
 

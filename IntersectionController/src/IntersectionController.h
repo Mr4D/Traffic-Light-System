@@ -24,16 +24,6 @@
 #define	EW_R   6
 #define	EW_P   7
 
-typedef enum {
-    PEAK,
-    OFF_PEAK
-} traffic_mode_t;
-
-typedef struct {
-	traffic_mode_t mode;
-	pthread_rwlock_t rwlock_input;
-} traffic_mode_data_t;
-
 // Input Signal Buffer
 typedef struct {
 	int length;
@@ -55,8 +45,9 @@ typedef struct {
 	traffic_state_data_t * traffic_state_data;
 	rail_state_data_t * rail_state_data;
 	int * change_state_channel_id;
-	connection_id_data_t * tcc_critical_server_coid_data;
 	traffic_mode_data_t * traffic_mode_data;
+	fault_data_t * fault_data;
+	reset_data_t * reset_data;
 } state_machine_thread_data_t;
 
 
@@ -74,21 +65,13 @@ typedef struct {
 	rail_state_data_t * rail_state_data;
 } output_thread_data_t;
 
-// critical client thread
-typedef struct {
-	int coid;
-	traffic_state_t current_state;
-
-	pthread_mutex_t mutex;
-} critical_client_send_data_t;
 
 // critical server thread
 typedef struct {
+	traffic_state_data_t * traffic_state_data;
 	rail_state_data_t * rail_state_data;
-} critical_server_data_t;
-
-// non-critical server thread
-typedef struct {
 	traffic_mode_data_t * traffic_mode_data;
-} non_critical_server_data_t;
+	fault_data_t * fault_data;
+	reset_data_t * reset_data;
+} critical_server_data_t;
 

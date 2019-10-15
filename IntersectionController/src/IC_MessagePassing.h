@@ -15,9 +15,5 @@
 #include "IntersectionController.h"
 
 
-
-void * critical_client_send_thread(void * data);
 void * critical_server_channel_thread(void * data);
-void * noncritical_server_channel_thread(void * data);
-
 

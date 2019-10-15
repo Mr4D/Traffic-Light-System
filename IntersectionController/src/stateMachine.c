@@ -9,8 +9,6 @@
 
 void * trafficStateMachine(void * data) {
 
-	printf("TrafficStateMachine()\n");
-
 	struct _pulse change_state_msg;
 	int rcvid;
 
@@ -20,35 +18,23 @@ void * trafficStateMachine(void * data) {
 	traffic_state_t previous_state = INITIAL;
 	traffic_input_queue_t input_queue;
 	traffic_mode_t mode;
-	int tcc_citical_server_coid;
-
 	state_machine_thread_data_t * thread_data = (state_machine_thread_data_t*) data;
 
 	traffic_input_data_t * input_data = thread_data->input_data;
 	traffic_state_data_t * traffic_state_data = thread_data->traffic_state_data;
 	rail_state_data_t * rail_state_data = thread_data->rail_state_data;
 	int change_state_channel_id = *thread_data->change_state_channel_id;
-	connection_id_data_t * tcc_critical_server_coid_data = thread_data->tcc_critical_server_coid_data;
 	traffic_mode_data_t * mode_data = thread_data->traffic_mode_data;
 
 	initiliseTimer(change_state_channel_id);
 
-	pthread_rwlock_rdlock( &tcc_critical_server_coid_data->rwlock_input );
-		tcc_citical_server_coid = tcc_critical_server_coid_data->coid;
-	pthread_rwlock_unlock( &tcc_critical_server_coid_data->rwlock_input );
-
-	critical_client_send_data_t critical_client_send_data = {
-			tcc_citical_server_coid,
-			current_state,
-			PTHREAD_MUTEX_INITIALIZER
-	};
 
 
 	while(1) {
 
-		pthread_rwlock_rdlock( &mode_data->rwlock_input );
+		pthread_mutex_lock( &mode_data->mutex );
 			mode = mode_data->mode;
-		pthread_rwlock_unlock( &mode_data->rwlock_input );
+		pthread_mutex_unlock( &mode_data->mutex );
 
 		// get input flags
 		pthread_rwlock_rdlock( &input_data->rwlock_input );
@@ -85,17 +71,6 @@ void * trafficStateMachine(void * data) {
 		pthread_mutex_unlock(&traffic_state_data->mutex_state);
 
 
-		// send state to tcc
-		pthread_rwlock_rdlock( &tcc_critical_server_coid_data->rwlock_input );
-			tcc_citical_server_coid = tcc_critical_server_coid_data->coid;
-		pthread_rwlock_unlock( &tcc_critical_server_coid_data->rwlock_input );
-
-		pthread_mutex_lock(&critical_client_send_data.mutex);
-			critical_client_send_data.coid = tcc_citical_server_coid;
-			critical_client_send_data.current_state = current_state;
-		pthread_mutex_unlock(&critical_client_send_data.mutex);
-
-		pthread_create(NULL, NULL, &critical_client_send_thread, &critical_client_send_data);
 
 		if(mode == PEAK){
 			updateTimersPeak(current_state);
@@ -240,6 +215,8 @@ traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_s
 
 	printf("changeTrafficState_peak\n");
 	traffic_state_t next_state = INITIAL;
+
+
 
 	switch(current_state) {
 
