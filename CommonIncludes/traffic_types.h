@@ -14,8 +14,8 @@
 
 #define BUF_SIZE 100
 
-#define I1_HOSTNAME "VM_x86_Target01"//"RMIT_BBB_v5_02"
-#define TCC_HOSTNAME "VM_x86_Target02"//"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
+#define I1_HOSTNAME "RMIT_BBB_v5_02"//"RMIT_BBB_v5_02"
+#define TCC_HOSTNAME "RMIT_BBB_v5_03"//"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
 #define RAIL_HOSTNAME "RMIT_BBB_v5_07"
 
