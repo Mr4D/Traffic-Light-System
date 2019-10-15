@@ -1,8 +1,8 @@
 #pragma once
 
-#include <traffic_types.h>
 #include <traffic_file_lib.h>
 #include <traffic_library.h>
+#include <traffic_types.h>
 
 #define NULL_PULSE 0
 #define STATE_TIMER_EXPIRE_PULSE 1
@@ -17,60 +17,57 @@
 #define TRAFFIC_INPUT_COUNT 6
 
 // KEYS
-#define	NS_STR 1
-#define	NS_R   2
-#define	NS_P   3
-#define	EW_STR 5
-#define	EW_R   6
-#define	EW_P   7
+#define NS_STR 1
+#define NS_R 2
+#define NS_P 3
+#define EW_STR 5
+#define EW_R 6
+#define EW_P 7
 
 // Input Signal Buffer
 typedef struct {
 	int length;
 
 	int input_buffer[TRAFFIC_INPUT_COUNT];
-}traffic_input_queue_t;
+} traffic_input_queue_t;
 
 typedef struct {
-	traffic_input_queue_t * input_queue;
+	traffic_input_queue_t *input_queue;
 	pthread_rwlock_t rwlock_input;
 } traffic_input_data_t;
-
 
 // thread data
 
 // state machine thread
 typedef struct {
-	traffic_input_data_t * input_data;
-	traffic_state_data_t * traffic_state_data;
-	rail_state_data_t * rail_state_data;
-	int * change_state_channel_id;
-	traffic_mode_data_t * traffic_mode_data;
-	fault_data_t * fault_data;
-	reset_data_t * reset_data;
+	traffic_input_data_t *input_data;
+	traffic_state_data_t *traffic_state_data;
+	rail_state_data_t *rail_state_data;
+	int *change_state_channel_id;
+	traffic_mode_data_t *traffic_mode_data;
+	fault_data_t *fault_data;
+	reset_data_t *reset_data;
 } state_machine_thread_data_t;
 
 // input thread
 typedef struct {
-	traffic_input_data_t * input_data;
-	int * change_state_channel_id;
-	traffic_mode_data_t * traffic_mode_data;
+	traffic_input_data_t *input_data;
+	int *change_state_channel_id;
+	traffic_mode_data_t *traffic_mode_data;
 } input_thread_data_t;
 
 // output thread
 typedef struct {
-	traffic_state_data_t * traffic_state_data;
-	rail_state_data_t * rail_state_data;
+	traffic_state_data_t *traffic_state_data;
+	rail_state_data_t *rail_state_data;
 } output_thread_data_t;
-
 
 // critical server thread
 typedef struct {
-	traffic_state_data_t * traffic_state_data;
-	rail_state_data_t * rail_state_data;
-	traffic_mode_data_t * traffic_mode_data;
-	fault_data_t * fault_data;
-	reset_data_t * reset_data;
-	name_attach_t * attach;
+	traffic_state_data_t *traffic_state_data;
+	rail_state_data_t *rail_state_data;
+	traffic_mode_data_t *traffic_mode_data;
+	fault_data_t *fault_data;
+	reset_data_t *reset_data;
+	name_attach_t *attach;
 } critical_server_data_t;
-
