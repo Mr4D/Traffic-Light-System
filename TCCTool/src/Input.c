@@ -3,6 +3,7 @@
 
 void * client_input_thread(void * data)
 {
+
 	tool_data_t * tools = (tool_data_t *) data;
 	msg_data_t msg;
 	msg_reply_t reply;
@@ -25,8 +26,6 @@ void * client_input_thread(void * data)
 	msg.client_id = clientID ; // unique number for this client (optional)
 
 	int server_coid = -1;
-
-
 	while (server_coid == -1)
 	{
 		printf("  ---> Trying to connect to server named: %s\n", attach);
