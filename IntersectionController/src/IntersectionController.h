@@ -7,12 +7,7 @@
 #define NULL_PULSE 0
 #define STATE_TIMER_EXPIRE_PULSE 1
 #define PED_TIMER_EXPIRE_PULSE 2
-#define NS_STR_INPUT_PULSE 3
-#define EW_STR_INPUT_PULSE 4
-#define NS_R_INPUT_PULSE 5
-#define EW_R_INPUT_PULSE 6
-#define NS_P_INPUT_PULSE 7
-#define EW_P_INPUT_PULSE 8
+#define PED_SENSE_TIMEOUT_EXPIRE_PULSE 3
 
 #define TRAFFIC_INPUT_COUNT 6
 
@@ -36,24 +31,32 @@ typedef struct {
 	pthread_rwlock_t rwlock_input;
 } traffic_input_data_t;
 
+typedef struct {
+	bool state_timer_timeout;
+	bool ped_timer_timeout;
+	bool ped_sense_timer_timeout;
+	bool input;
+	bool fault;
+	bool reset;
+}change_state_flags_t;
+
 // thread data
 
 // state machine thread
 typedef struct {
-	traffic_input_data_t *input_data;
-	traffic_state_data_t *traffic_state_data;
-	rail_state_data_t *rail_state_data;
-	int *change_state_channel_id;
-	traffic_mode_data_t *traffic_mode_data;
-	fault_data_t *fault_data;
-	reset_data_t *reset_data;
+	traffic_input_data_t * input_data;
+	traffic_state_data_t * traffic_state_data;
+	rail_state_data_t * rail_state_data;
+	traffic_mode_data_t * traffic_mode_data;
+	change_state_flags_t * change_state_flags;
+	fault_data_t * fault_data;
+	reset_data_t * reset_data;
 } state_machine_thread_data_t;
 
 // input thread
 typedef struct {
-	traffic_input_data_t *input_data;
-	int *change_state_channel_id;
-	traffic_mode_data_t *traffic_mode_data;
+	traffic_input_data_t * input_data;
+	change_state_flags_t * change_state_flags;
 } input_thread_data_t;
 
 // output thread
@@ -64,10 +67,16 @@ typedef struct {
 
 // critical server thread
 typedef struct {
-	traffic_state_data_t *traffic_state_data;
-	rail_state_data_t *rail_state_data;
-	traffic_mode_data_t *traffic_mode_data;
-	fault_data_t *fault_data;
-	reset_data_t *reset_data;
-	name_attach_t *attach;
+	traffic_state_data_t * traffic_state_data;
+	rail_state_data_t * rail_state_data;
+	traffic_mode_data_t * traffic_mode_data;
+	change_state_flags_t * change_state_flags;
+	fault_data_t * fault_data;
+	reset_data_t * reset_data;
+	name_attach_t * attach;
 } critical_server_data_t;
+
+typedef struct {
+	int * chid;
+	change_state_flags_t * change_state_flags;
+} timer_thread_data_t;

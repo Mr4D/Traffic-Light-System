@@ -7,10 +7,51 @@
 
 #include "stateMachine.h"
 
-void *trafficStateMachine(void *data) {
+void * timerThread (void * data){
 
 	struct _pulse change_state_msg;
 	int rcvid;
+
+	timer_thread_data_t * thread_data = (timer_thread_data_t*)data;
+	int chid = *thread_data->chid;
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
+
+	while(1){
+		rcvid = MsgReceivePulse(chid, &change_state_msg, sizeof(change_state_msg), NULL);
+
+		if (change_state_msg.code == STATE_TIMER_EXPIRE_PULSE) {
+			writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
+
+			printf("STATE_TIMER_EXPIRE_PULSE\n");
+
+			pthread_sleepon_lock();
+				change_state_flags->state_timer_timeout = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
+		}
+		else if (change_state_msg.code == PED_TIMER_EXPIRE_PULSE) {
+			writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
+			printf("PED_TIMER_EXPIRE_PULSE\n");
+			pthread_sleepon_lock();
+				change_state_flags->ped_timer_timeout = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
+		}
+		else if (change_state_msg.code == PED_SENSE_TIMEOUT_EXPIRE_PULSE) {
+			writeTrafficLogFile(LOG_FILE_NAME, "PED_SENSE_TIMEOUT_EXPIRE_PULSE\n");
+			printf("PED_SENSE_TIMEOUT_EXPIRE_PULSE\n");
+			pthread_sleepon_lock();
+				change_state_flags->ped_sense_timer_timeout = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
+		}
+	}
+
+}
+
+void * trafficStateMachine(void *data) {
+
+
 
 	traffic_state_t next_state = INITIAL;
 	traffic_state_t current_state = INITIAL;
@@ -25,16 +66,26 @@ void *trafficStateMachine(void *data) {
 	traffic_input_data_t *input_data = thread_data->input_data;
 	traffic_state_data_t *traffic_state_data = thread_data->traffic_state_data;
 	rail_state_data_t *rail_state_data = thread_data->rail_state_data;
-	int change_state_channel_id = *thread_data->change_state_channel_id;
 	traffic_mode_data_t * mode_data = thread_data->traffic_mode_data;
 	fault_data_t * fault_data = thread_data->fault_data;
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
 
-
+	change_state_flags_t state_flags;
 	
+	int change_state_channel_id = ChannelCreate(0);
 	initiliseTimer(change_state_channel_id);
 
+	timer_thread_data_t timer_thread_data = {
+			&change_state_channel_id,
+			change_state_flags
+	};
 
-	while (1) {
+	pthread_create(NULL, NULL, &timerThread, &timer_thread_data);
+
+	bool state_machine_exit = false;
+	while (!state_machine_exit) {
+
+
 		pthread_rwlock_rdlock( &mode_data->rwlock );
 			mode = mode_data->mode;
 		pthread_rwlock_unlock( &mode_data->rwlock );
@@ -100,17 +151,22 @@ void *trafficStateMachine(void *data) {
 		// wait for timer
 		bool change_state = false;
 		while (!change_state) {
+			pthread_sleepon_lock();
+				pthread_sleepon_wait(change_state_flags);
 
-			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL);	// Wait for timer signal
+				memcpy(&state_flags, change_state_flags, sizeof(state_flags));
+			pthread_sleepon_unlock();
+
+			pthread_rwlock_rdlock(&input_data->rwlock_input);
+				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
+			pthread_rwlock_unlock(&input_data->rwlock_input);
 
 			if (mode == PEAK) {
-				change_state = decideChangeStatePeak(&change_state_msg, current_state);
+				change_state = decideChangeStatePeak(&state_flags, current_state, &input_queue);
 			}
 			else if (mode == OFF_PEAK) {
-				pthread_rwlock_rdlock(&input_data->rwlock_input);
-					memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
-				pthread_rwlock_unlock(&input_data->rwlock_input);
-				change_state = decideChangeStateOffPeak(&change_state_msg, current_state, &input_queue);
+
+				change_state = decideChangeStateOffPeak(&state_flags, current_state, &input_queue);
 			}
 		}
 
@@ -119,6 +175,33 @@ void *trafficStateMachine(void *data) {
 		}
 		else if (mode == OFF_PEAK) {
 			clearInputOffPeak(input_data, current_state);
+		}
+
+		printf("\n\nbefore clear\n");
+		printf("state: %d\n", state_flags.state_timer_timeout);
+		printf("ped: %d\n", state_flags.ped_timer_timeout);
+		printf("ped_sen: %d\n", state_flags.ped_sense_timer_timeout);
+		printf("input: %d\n", state_flags.input);
+		printf("fault: %d\n", state_flags.fault);
+		printf("rest: %d\n", state_flags.reset);
+
+		clearFlags(change_state_flags, input_data);
+
+		printf("\nafter clear\n");
+		pthread_sleepon_lock();
+			memcpy(&state_flags, change_state_flags, sizeof(state_flags));
+		pthread_sleepon_unlock();
+
+		printf("state: %d\n", state_flags.state_timer_timeout);
+		printf("ped: %d\n", state_flags.ped_timer_timeout);
+		printf("ped_sen: %d\n", state_flags.ped_sense_timer_timeout);
+		printf("input: %d\n", state_flags.input);
+		printf("fault: %d\n", state_flags.fault);
+		printf("rest: %d\n", state_flags.reset);
+
+
+		if(state_flags.reset && (current_state == ALL_RED || current_state == FAULT || current_state == INITIAL)){
+			state_machine_exit = true;
 		}
 	};
 
@@ -200,6 +283,44 @@ void initiliseTimer(int chid) {
 		}
 		exit(EXIT_FAILURE);
 	}
+
+	ped_sense_timeout_timer_event.sigev_coid = ConnectAttach(ND_LOCAL_NODE, 0, chid, _NTO_SIDE_CHANNEL, 0);
+
+	if (ped_sense_timeout_timer_event.sigev_coid != -1) {
+
+		printf("set ped timeout timer\n");
+		ped_sense_timeout_timer_event.sigev_notify = SIGEV_PULSE;
+
+		struct sched_param th_param;
+		pthread_getschedparam(pthread_self(), NULL, &th_param);			// Get my own thread parameters
+		ped_sense_timeout_timer_event.sigev_priority = th_param.sched_curpriority;	// Set sig with same priority as myself
+
+		ped_sense_timeout_timer_event.sigev_code = PED_SENSE_TIMEOUT_EXPIRE_PULSE;
+
+		// Create Pedestrian Timer
+		if (timer_create(CLOCK_REALTIME, &ped_sense_timeout_timer_event, &ped_sense_timeout_timer_id) == -1) { // create the timer, binding it to the event
+			if (LOG) {
+				sprintf(log_message, "Couldn't create Pedestrian Timer, errno: %d\n", errno);
+				writeTrafficLogFile(LOG_FILE_NAME, log_message);
+			}
+			exit(EXIT_FAILURE);
+		}
+
+		// Timer for the pedestrian crossing at the traffic intersection
+		// one-shot timer (default = 0s)
+		itime_ped_sense_timeout_timer.it_value.tv_sec = 0;		// 0 second
+		itime_ped_sense_timeout_timer.it_value.tv_nsec = 0;		// 0 nano seconds
+		itime_ped_sense_timeout_timer.it_interval.tv_sec = 0;		// 0 second 		(reload)
+		itime_ped_sense_timeout_timer.it_interval.tv_nsec = 0;	// 0 nano seconds 	(reload)
+	}
+	else {
+		if (LOG) {
+			sprintf(log_message, "Couldn't ConnectAttach to, chid: %d\n", chid);
+			writeTrafficLogFile(LOG_FILE_NAME, log_message);
+		}
+		exit(EXIT_FAILURE);
+	}
+
 }
 
 traffic_state_t handleFaultSig(traffic_state_t current_state) {
@@ -516,10 +637,10 @@ void updateTimersPeak(traffic_state_t current_state) {
 
 		case NS_S_G_SEN:
 			itime_state_timer.it_value.tv_sec = TIME_TRAFFIC_STRAIGHT;
-			itime_ped_timer.it_value.tv_sec = TIME_PED_TIME_OUT;
+			itime_ped_sense_timeout_timer.it_value.tv_sec = TIME_PED_TIME_OUT;
 
 			timer_settime(state_timer_id, 0, &itime_state_timer, NULL); // and start the timer!
-			timer_settime(ped_timer_id, 0, &itime_ped_timer, NULL);		// and start the timer!
+			timer_settime(ped_sense_timeout_timer_id, 0, &itime_ped_sense_timeout_timer, NULL);		// and start the timer!
 			break;
 
 		case NS_S_G_P_X:
@@ -543,10 +664,10 @@ void updateTimersPeak(traffic_state_t current_state) {
 
 		case EW_S_G_SEN:
 			itime_state_timer.it_value.tv_sec = TIME_TRAFFIC_STRAIGHT;
-			itime_ped_timer.it_value.tv_sec = TIME_PED_TIME_OUT;
+			itime_ped_sense_timeout_timer.it_value.tv_sec = TIME_PED_TIME_OUT;
 
 			timer_settime(state_timer_id, 0, &itime_state_timer, NULL); // and start the timer!
-			timer_settime(ped_timer_id, 0, &itime_ped_timer, NULL);		// and start the timer!
+			timer_settime(ped_sense_timeout_timer_id, 0, &itime_ped_sense_timeout_timer, NULL);		// and start the timer!
 			break;
 
 		case EW_S_G_P_X:
@@ -687,70 +808,96 @@ void updateTimersOffPeak(traffic_state_t current_state) {
 	}
 }
 
-bool decideChangeStatePeak(struct _pulse *change_state_msg, traffic_state_t current_state) {
+bool decideChangeStatePeak(change_state_flags_t * change_state_flags, traffic_state_t current_state, traffic_input_queue_t * input_queue) {
 
 	bool change_state = false;
 
-	if (change_state_msg->code == STATE_TIMER_EXPIRE_PULSE) {
+	if(change_state_flags->fault){
+		writeTrafficLogFile(LOG_FILE_NAME, "FAULT_PULSE\n");
+		change_state = true;
+	}
+
+	if(change_state_flags->reset){
+		writeTrafficLogFile(LOG_FILE_NAME, "RESET_PULSE\n");
+		change_state = true;
+	}
+
+	if (change_state_flags->state_timer_timeout) {
 		writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
 
 		change_state = true;
 	}
-	else if (change_state_msg->code == PED_TIMER_EXPIRE_PULSE) {
+
+	if (change_state_flags->ped_timer_timeout) {
 		writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
 
-		change_state = true;
-	}
-	else if (change_state_msg->code == NS_P_INPUT_PULSE) {
-		writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
+		if(current_state == NS_S_G_P_X || current_state == NS_S_G_P_F ||
+			current_state == EW_S_G_P_X || current_state == EW_S_G_P_F) {
 
-		struct itimerspec ped_itimerspec;
-		timer_gettime(ped_timer_id, &ped_itimerspec);
-
-		if (current_state == NS_S_G_SEN && ped_itimerspec.it_value.tv_sec > 1) {
 			change_state = true;
 		}
 	}
-	else if (change_state_msg->code == EW_P_INPUT_PULSE) {
-		writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
+	if (change_state_flags->ped_sense_timer_timeout) {
+		writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
 
-		struct itimerspec ped_itimerspec;
-		timer_gettime(ped_timer_id, &ped_itimerspec);
-
-		if (current_state == EW_S_G_SEN && ped_itimerspec.it_value.tv_sec > 1) {
+		if(current_state == NS_S_G_SEN || current_state == EW_S_G_SEN ) {
 			change_state = true;
 		}
 	}
+
+	if(change_state_flags->input){
+
+		if (containsTrafficInputBuf(input_queue, NS_P)) {
+			writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
+
+
+			if (current_state == NS_S_G_SEN) {
+				change_state = true;
+			}
+		}
+
+		if (containsTrafficInputBuf(input_queue, EW_P)) {
+			writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
+
+			if (current_state == EW_S_G_SEN) {
+				change_state = true;
+			}
+		}
+	}
+
 	return change_state;
 }
 
-bool decideChangeStateOffPeak(struct _pulse *change_state_msg, traffic_state_t current_state, traffic_input_queue_t *input_queue) {
+bool decideChangeStateOffPeak(change_state_flags_t * change_state_flags, traffic_state_t current_state, traffic_input_queue_t *input_queue) {
 	bool change_state = false;
 
-	if (change_state_msg->code == STATE_TIMER_EXPIRE_PULSE) {
+	if(change_state_flags->fault){
+		writeTrafficLogFile(LOG_FILE_NAME, "FAULT_PULSE\n");
+		change_state = true;
+	}
+
+	if(change_state_flags->reset){
+		writeTrafficLogFile(LOG_FILE_NAME, "RESET_PULSE\n");
+		change_state = true;
+	}
+
+	if (change_state_flags->state_timer_timeout) {
 		writeTrafficLogFile(LOG_FILE_NAME, "STATE_TIMER_EXPIRE_PULSE\n");
 
 		if (!(current_state == EW_S_G_SEN && input_queue->length == 0)) {
 			change_state = true;
 		}
 	}
-	else if (change_state_msg->code == PED_TIMER_EXPIRE_PULSE) {
+	if (change_state_flags->ped_timer_timeout) {
 		writeTrafficLogFile(LOG_FILE_NAME, "PED_TIMER_EXPIRE_PULSE\n");
 
 		change_state = true;
 	}
-	else if (change_state_msg->code == NS_STR_INPUT_PULSE ||
-			   change_state_msg->code == NS_R_INPUT_PULSE ||
-			   change_state_msg->code == EW_R_INPUT_PULSE ||
-			   change_state_msg->code == NS_P_INPUT_PULSE ||
-			   change_state_msg->code == EW_P_INPUT_PULSE) {
+	if ( change_state_flags->input ) {
 
 		writeTrafficLogFile(LOG_FILE_NAME, "INPUT_PULSE\n");
 
-		struct itimerspec state_itimerspec;
-		timer_gettime(state_timer_id, &state_itimerspec);
-
-		if (current_state == EW_S_G_SEN && state_itimerspec.it_value.tv_sec == 0) {
+		if (current_state == EW_S_G_SEN && change_state_flags->state_timer_timeout) {
 			change_state = true;
 		}
 	}
@@ -777,7 +924,7 @@ void clearInputPeak(traffic_input_data_t *input_data, traffic_state_t state) {
 	pthread_rwlock_unlock(&input_data->rwlock_input);
 }
 
-void clearInputOffPeak(traffic_input_data_t *input_data, traffic_state_t state) {
+void clearInputOffPeak(traffic_input_data_t * input_data, traffic_state_t state) {
 
 	traffic_input_queue_t input_queue;
 
@@ -813,6 +960,25 @@ void clearInputOffPeak(traffic_input_data_t *input_data, traffic_state_t state) 
 		memcpy(input_data->input_queue, &input_queue, sizeof(input_queue));
 	pthread_rwlock_unlock(&input_data->rwlock_input);
 }
+
+void clearFlags(change_state_flags_t * change_state_flags, traffic_input_data_t * input_data) {
+
+	pthread_rwlock_rdlock(&input_data->rwlock_input);
+		int input_length = input_data->input_queue->length;
+	pthread_rwlock_unlock(&input_data->rwlock_input);
+
+	pthread_sleepon_lock();
+		change_state_flags->state_timer_timeout = false;
+		change_state_flags->ped_timer_timeout = false;
+		change_state_flags->ped_sense_timer_timeout = false;
+
+		if(input_length == 0){
+			change_state_flags->input = false;
+		}
+	pthread_sleepon_unlock();
+}
+
+
 
 void stateToString(traffic_state_t state, char *state_str) {
 
@@ -889,3 +1055,4 @@ void stateToString(traffic_state_t state, char *state_str) {
 			break;
 	}
 }
+

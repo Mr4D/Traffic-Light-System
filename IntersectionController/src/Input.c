@@ -3,21 +3,22 @@
 void *inputThread(void *data) {
 
 	printf("inputThread()\n");
-	traffic_mode_t mode;
 	traffic_input_queue_t input_queue;
 
 	input_thread_data_t *thread_data = (input_thread_data_t *)data;
 
-	traffic_input_data_t *input_data = thread_data->input_data;
-	int change_state_channel_id = *thread_data->change_state_channel_id; // Create a communications channel
-	traffic_mode_data_t *traffic_mode_data = thread_data->traffic_mode_data;
 
-	int coid = ConnectAttach(ND_LOCAL_NODE, 0, change_state_channel_id, _NTO_SIDE_CHANNEL, 0);
+	traffic_input_data_t * input_data = thread_data->input_data;
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
 
-	int pulse_code = NULL_PULSE;
-	// gain access to device registers for "Control Module" and "GPIO1"
-	uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
-	uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE, AM335X_GPIO1_BASE);
+			// gain access to device registers for "Control Module" and "GPIO1"
+	  uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
+	  uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE , AM335X_GPIO1_BASE);
+
+	  printf("ISR_area_data\n");
+	  // initalise the global stuct
+	  ISR_area_data.count_thread = 0;
+	  ISR_area_data.gpio1_base = gpio1_base;
 
 	printf("ISR_area_data\n");
 	// initalise the global stuct
@@ -103,60 +104,43 @@ void *inputThread(void *data) {
 			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
-			pthread_rwlock_rdlock(&traffic_mode_data->rwlock);
-			memcpy(&mode, &traffic_mode_data->mode, sizeof(mode));
-			pthread_rwlock_unlock(&traffic_mode_data->rwlock);
-
-			printf("mode: %d\n", mode);
 
 			bool sendpulse = false;
 			switch (val) {
 				case NS_STR:
-					if (!containsTrafficInputBuf(&input_queue, NS_STR) && mode == OFF_PEAK) {
+					if(!containsTrafficInputBuf(&input_queue, NS_STR)){
 						writeTrafficInputBuf(&input_queue, NS_STR);
-						printf("after write input_queue.length: %d\n", input_queue.length);
-						pulse_code = NS_STR_INPUT_PULSE;
 						sendpulse = true;
 					}
 					break;
 				case EW_STR:
-					if (!containsTrafficInputBuf(&input_queue, EW_STR) && mode == OFF_PEAK) {
+					if(!containsTrafficInputBuf(&input_queue, EW_STR) ){
 						writeTrafficInputBuf(&input_queue, EW_STR);
 
-						pulse_code = EW_STR_INPUT_PULSE;
-						sendpulse = true;
 					}
 					break;
 				case NS_R:
-					if (!containsTrafficInputBuf(&input_queue, NS_R) && mode == OFF_PEAK) {
+					if(!containsTrafficInputBuf(&input_queue, NS_R) ){
 						writeTrafficInputBuf(&input_queue, NS_R);
 
-						pulse_code = NS_R_INPUT_PULSE;
-						sendpulse = true;
 					}
 					break;
 				case EW_R:
-					if (!containsTrafficInputBuf(&input_queue, EW_R) && mode == OFF_PEAK) {
+					if(!containsTrafficInputBuf(&input_queue, EW_R) ){
 						writeTrafficInputBuf(&input_queue, EW_R);
 
-						pulse_code = EW_R_INPUT_PULSE;
-						sendpulse = true;
 					}
 					break;
 				case NS_P:
 					if (!containsTrafficInputBuf(&input_queue, NS_P)) {
 						writeTrafficInputBuf(&input_queue, NS_P);
 
-						pulse_code = NS_P_INPUT_PULSE;
-						sendpulse = true;
 					}
 					break;
 				case EW_P:
 					if (!containsTrafficInputBuf(&input_queue, EW_P)) {
 						writeTrafficInputBuf(&input_queue, EW_P);
 
-						pulse_code = EW_P_INPUT_PULSE;
-						sendpulse = true;
 					}
 					break;
 				default:
@@ -169,9 +153,10 @@ void *inputThread(void *data) {
 
 			printInputBuf(&input_queue);
 
-			if (sendpulse) {
-				MsgSendPulse(coid, PULSE_PRIORITY, pulse_code, 0);
-			}
+			pthread_sleepon_lock();
+				change_state_flags->input = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
 
 			//sched_yield();
 		}
@@ -396,11 +381,11 @@ int findTrafficInputBuf(traffic_input_queue_t *input_queue, int traffic_input) {
 	return signal_index;
 }
 
-bool containsTrafficInputBuf(traffic_input_queue_t *input_queue, int traffic_input) {
+bool containsTrafficInputBuf(traffic_input_queue_t * input_queue, int traffic_input) {
 
 	bool found = false;
 
-	if (findTrafficInputBuf(input_queue, traffic_input) == -1) {
+	if (findTrafficInputBuf(input_queue, traffic_input) != -1) {
 		found = true;
 	}
 

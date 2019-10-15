@@ -59,12 +59,12 @@ int main(void) {
 	pthread_t critical_server_channel;
 
 	pthread_t send;
-	pthread_create(&send, NULL, &sendMessage, &i1_send);
-	pthread_join(send, NULL);
+//	pthread_create(&send, NULL, &sendMessage, &i1_send);
+//	pthread_join(send, NULL);
 
 	//pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &critical_server_thread_data);
 
-	//pthread_create(&output, NULL, &t_output, &output_thread_data);
+	pthread_create(&output, NULL, &t_output, &output_thread_data);
 
 	//pthread_join(critical_server_channel, NULL);
 	//pthread_join(output, NULL);
