@@ -3,6 +3,8 @@
 
 void * critical_server_channel_thread(void * data) {
 
+
+
 	critical_server_data_t * thread_data = (critical_server_data_t *) data;
 	traffic_state_data_t * traffic_state_data = thread_data->traffic_state_data;
 	rail_state_data_t * rail_state_data = thread_data->rail_state_data;
@@ -30,7 +32,9 @@ void * critical_server_channel_thread(void * data) {
 	replymsg.hdr.subtype = 0x00;
 
 	living = 1;
-	while (living) {
+
+	bool reset = false;
+	while (!reset) {
 	// Do your MsgReceive's here now with the chid
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 	  printf("message received\n");
@@ -86,9 +90,9 @@ void * critical_server_channel_thread(void * data) {
 			   }
 			   else if(msg.hdr.type == MODE_MSG){
 				   printf("MODE_MSG\n");
-				   pthread_mutex_lock(&traffic_mode_data->mutex);
+				   pthread_rwlock_wrlock(&traffic_mode_data->rwlock);
 					   traffic_mode_data->mode = msg.data.mode;
-				   pthread_mutex_unlock(&traffic_mode_data->mutex);
+				   pthread_rwlock_unlock(&traffic_mode_data->rwlock);
 
 				   sprintf(replymsg.data.buf,"OK");
 			   }
@@ -102,10 +106,18 @@ void * critical_server_channel_thread(void * data) {
 			   }
 			   else if(msg.hdr.type == RESET_MSG){
 				   printf("RESET_MSG\n");
-				   pthread_mutex_lock(&reset_data->mutex);
-					   reset_data->reset = msg.data.reset;
-				   pthread_mutex_unlock(&reset_data->mutex);
-
+				   if(msg.data.reset){
+					   reset = msg.data.reset;
+					   printf("reset: %d\n", reset);
+//					   pthread_mutex_lock(&reset_data->mutex);
+//						   reset_data->reset = msg.data.reset;
+//						   reset
+//						   reset_data->data_ready = true;
+//						   pthread_cond_signal(&reset_data->cond);
+//						   printf("signal()\n");
+//					   pthread_mutex_unlock(&reset_data->mutex);
+					   //printf("unlock()\n");
+				   }
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else {
@@ -128,6 +140,9 @@ void * critical_server_channel_thread(void * data) {
 
 	}
 
+	printf("name detach\n");
 	// Remove the attach point name from the file system (i.e. /dev/name/local/<myname>)
-	ChannelDestroy(attach->chid);
+	name_detach(attach, NULL);
+
+	return EXIT_SUCCESS;
 }

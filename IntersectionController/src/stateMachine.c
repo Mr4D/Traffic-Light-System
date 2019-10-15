@@ -18,8 +18,7 @@ void *trafficStateMachine(void *data) {
 	traffic_input_queue_t input_queue;
 	traffic_mode_t mode;
 	
-	bool reset_flag;
-	bool fault_flag;
+	bool fault_flag = false;
 
 	state_machine_thread_data_t *thread_data = (state_machine_thread_data_t *)data;
 
@@ -28,22 +27,20 @@ void *trafficStateMachine(void *data) {
 	rail_state_data_t *rail_state_data = thread_data->rail_state_data;
 	int change_state_channel_id = *thread_data->change_state_channel_id;
 	traffic_mode_data_t * mode_data = thread_data->traffic_mode_data;
+	fault_data_t * fault_data = thread_data->fault_data;
 
-	// TODO: Need to edit this here 
-	reset_data_t *reset_data;
-	fault_data_t *fault_data;
+
 	
 	initiliseTimer(change_state_channel_id);
 
 
 	while (1) {
-
-		pthread_mutex_lock( &mode_data->mutex );
+		pthread_rwlock_rdlock( &mode_data->rwlock );
 			mode = mode_data->mode;
-		pthread_mutex_unlock( &mode_data->mutex );
+		pthread_rwlock_unlock( &mode_data->rwlock );
 
 		pthread_mutex_lock(&fault_data->mutex);			// Save the fault flag state
-			fault_data = fault_data->fault;
+			fault_flag = fault_data->fault;
 		pthread_mutex_unlock(&fault_data->mutex);
 
 		pthread_rwlock_rdlock(&input_data->rwlock_input);	// get input flags
@@ -89,8 +86,11 @@ void *trafficStateMachine(void *data) {
 			}
 		}
 
+		stateToString(current_state, log_message);
+		printf(log_message);
+		printf("\n");
 		if (LOG) {	// Print state info
-			stateToString(current_state, log_message);
+
 			strcat(log_message, "\n");
 			writeTrafficLogFile(LOG_FILE_NAME, log_message);
 			sprintf(log_message, "Timer:  %ld\n", itime_state_timer.it_value.tv_sec);

@@ -47,7 +47,8 @@ void initiliseTimer();
 traffic_state_t handleFaultSig(traffic_state_t current_state);
 traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_data);
 traffic_state_t changeTrafficState_offPeak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t * input_data);
-void updateTimers(traffic_state_t current_state);
+void updateTimersPeak(traffic_state_t current_state);
+void updateTimersOffPeak(traffic_state_t current_state);
 
 bool decideChangeStatePeak(struct _pulse * change_state_msg, traffic_state_t current_state);
 bool decideChangeStateOffPeak(struct _pulse * change_state_msg, traffic_state_t current_state, traffic_input_queue_t * input_queue);

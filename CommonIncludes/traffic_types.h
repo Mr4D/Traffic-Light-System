@@ -120,7 +120,7 @@ typedef struct {
 
 typedef struct {
 	traffic_mode_t mode;
-	pthread_mutex_t mutex;
+	pthread_rwlock_t rwlock;
 } traffic_mode_data_t;
 
 /* Struct for r/w locking of rail states*/
@@ -132,7 +132,11 @@ typedef struct {
 /* Struct for r/w locking of rail states*/
 typedef struct {
 	bool reset;	
+
+	bool data_ready;
 	pthread_mutex_t mutex;  // needs to be set to PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t cond; // needs to be set to PTHREAD_COND_INITIALIZER;
+
 } reset_data_t;
 
 
