@@ -17,18 +17,16 @@ void *inputThread(void *data) {
 	ISR_area_data.count_thread = 0;
 	ISR_area_data.gpio1_base = gpio1_base;
 
-	printf("\tmemset\n");
 	memset(&ISR_area_data.pevent, 0, sizeof(ISR_area_data.pevent));
 	SIGEV_INTR_INIT(&ISR_area_data.pevent);
 	ISR_area_data.pevent.sigev_notify = SIGEV_INTR; // Setup for external interrupt
 
-	printf("\tThreadCtl\n");
 	// we also need to have the PROCMGR_AID_INTERRUPT and PROCMGR_AID_IO abilities enabled. For more information, see procmgr_ability().
 	ThreadCtl(_NTO_TCTL_IO_PRIV, 1); // Request I/O privileges  for QNX7;
-	printf("\tprocmgr_ability\n");
+
 	//procmgr_ability( 0, PROCMGR_AID_INTERRUPT | PROCMGR_AID_IO);
 
-	printf("if( (control_module)&&(gpio1_base) )\n");
+
 	if ((control_module) && (gpio1_base)) {
 
 		volatile uint32_t val = 0;
@@ -49,7 +47,7 @@ void *inputThread(void *data) {
 		out32(gpio1_base + GPIO_DATAOUT, val); // for 16-Key active-Low timing diagram
 
 		in32s(&val, 1, control_module + P9_12_pinConfig);
-		printf("Original pinmux configuration for GPIO1_28 = %#010x\n", val);
+
 
 		// set up pin mux for the pins we are going to use  (see page 1354 of TRM)
 		volatile _CONF_MODULE_PIN pinConfigGPMC; // Pin configuration strut
@@ -64,7 +62,7 @@ void *inputThread(void *data) {
 		// Write to PinMux registers for the GPIO1_28
 		out32(control_module + P9_12_pinConfig, pinConfigGPMC.d32);
 		in32s(&val, 1, control_module + P9_12_pinConfig); // Read it back
-		printf("New configuration register for GPIO1_28 = %#010x\n", val);
+
 
 		// Setup IRQ for SD0 pin ( see TRM page 4871 for register list)
 		out32(gpio1_base + GPIO_IRQSTATUS_SET_1, SD0); // Write 1 to GPIO_IRQSTATUS_SET_1
@@ -83,27 +81,42 @@ void *inputThread(void *data) {
 		InterruptUnmask(GPIO1_IRQ, id); // Enable a hardware interrupt
 
 		int i = 0;
-		printf("\tMain entering loop and will call InterruptWait\n");
 
 		for (;;) {
 			
-			printf("\tWaiting for signal\n");
 			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
 			InterruptWait(0, NULL); // block this thread until an interrupt occurs  (Wait for a hardware interrupt)
 			
 			// printf("do interrupt work here...\n");
 			int val = readKeypad(gpio1_base);
 
-			printf("input recieved\n");
 			pthread_rwlock_wrlock(&input_data->rwlock_input);
 			switch (val) {
 
-				case TRAIN_INPUT:
-					input_data->train = ON;
+				case E_TRAIN_INPUT:
+					input_data->e_train = ON;
 					break;
 
-				case NO_TRAIN_INPUT:
-					input_data->train = OFF;
+				case E_NO_TRAIN_INPUT:
+					input_data->e_train = OFF;
+					break;
+				case W_TRAIN_INPUT:
+					input_data->w_train = ON;
+					break;
+
+				case W_NO_TRAIN_INPUT:
+					input_data->w_train = OFF;
+					break;
+
+				case FAULT_INPUT:
+					pthread_sleepon_lock();
+						change_state_flags->fault = true;
+					pthread_sleepon_unlock();
+					break;
+				case RESET_INPUT:
+					pthread_sleepon_lock();
+						change_state_flags->reset = true;
+					pthread_sleepon_unlock();
 					break;
 
 				default:
@@ -116,9 +129,6 @@ void *inputThread(void *data) {
 				pthread_sleepon_signal(change_state_flags);
 			pthread_sleepon_unlock();
 			
-			// MsgSendPulse(coid, PULSE_PRIORITY, pulse_code, 0);
-			//printInputFlags(input_data);
-			//sched_yield();
 		}
 
 		munmap_device_io(control_module, AM335X_CONTROL_MODULE_SIZE);
@@ -169,83 +179,58 @@ int DecodeKeyValue(uint32_t word) {
 
 	switch (word) {
 		case 0x01:
-			printf("Key  1 pressed\n");
 			key = 1;
 			break;
 		case 0x02:
-			printf("Key  2 pressed\n");
 			key = 2;
 			break;
 		case 0x04:
-			printf("Key  3 pressed\n");
 			key = 3;
 			break;
 		case 0x08:
-			printf("Key  4 pressed\n");
 			key = 4;
 			break;
 		case 0x10:
-			printf("Key  5 pressed\n");
 			key = 5;
 			break;
 		case 0x20:
-			printf("Key  6 pressed\n");
 			key = 6;
 			break;
 		case 0x40:
-			printf("Key  7 pressed\n");
 			key = 7;
 			break;
 		case 0x80:
-			printf("Key  8 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 8;
 			break;
 		case 0x100:
-			printf("Key  9 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 9;
 			break;
 		case 0x200:
-			printf("Key 10 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 10;
 			break;
 		case 0x400:
-			printf("Key 11 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 11;
 			break;
 		case 0x800:
-			printf("Key 12 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 12;
 			break;
 		case 0x1000:
-			printf("Key 13 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 13;
 			break;
 		case 0x2000:
-			printf("Key 14 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 14;
 			break;
 		case 0x4000:
-			printf("Key 15 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 15;
 			break;
 		case 0x8000:
-			printf("Key 16 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 16;
 			usleep(1); // do this so we only fire once
 			break;
 		case 0x00: // key release event (do nothing)
 			break;
 		default:
-			printf("Key pressed could not be determined - %lu\n", word);
+			break;
 	}
 
 	return key;
@@ -308,18 +293,26 @@ const struct sigevent *Inthandler(void *area, int id) {
 
 void printInputFlags(rail_input_data_t *input_data) {
 
-	InputSignal train;
+	InputSignal e_train;
+	InputSignal w_train;
 
 	pthread_rwlock_rdlock(&input_data->rwlock_input);
-	train = input_data->train;
+		e_train = input_data->e_train;
+		w_train = input_data->w_train;
 	pthread_rwlock_unlock(&input_data->rwlock_input);
 	// North South Straight
-	if (train == ON) {
-		printf("\nTRAIN = ON\n");
+	if (e_train == ON) {
+		printf("\nE_TRAIN = ON\n");
 	}
-
 	// North South Right Turn
-	if (train == OFF) {
-		printf("\TRAIN = OFF\n");
+	if (e_train == OFF) {
+		printf("\nE_TRAIN = OFF\n");
+	}
+	if (w_train == ON) {
+		printf("\nW_TRAIN = ON\n");
+	}
+	// North South Right Turn
+	if (w_train == OFF) {
+		printf("\nW_TRAIN = OFF\n");
 	}
 }

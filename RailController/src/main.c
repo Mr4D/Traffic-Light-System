@@ -11,7 +11,8 @@
 #include <traffic_library.h>
 
 void initRailInputData(rail_input_data_t *input_data) {
-	input_data->train = OFF;
+	input_data->e_train = OFF;
+	input_data->w_train = OFF;
 	pthread_rwlock_init(&input_data->rwlock_input, NULL);
 }
 
@@ -27,7 +28,6 @@ void initData(rail_state_data_t *rail_state_data,
 			  input_thread_data_t *input_thread_data,
 			  ouput_thread_data_t *ouput_thread_data,
 			  critial_client_thread_data_t *critial_client_thread_data,
-			  critial_server_thread_data_t *critial_server_thread_data,
 			  fault_data_t *fault_data,
 			  reset_data_t *reset_data,
 			  change_state_flags_t *change_state_flags) {
@@ -49,17 +49,12 @@ void initData(rail_state_data_t *rail_state_data,
 
 	critial_client_thread_data->rail_state_data = rail_state_data;
 
-	critial_server_thread_data->fault_data = fault_data;
-	critial_server_thread_data->reset_data = reset_data;
-	critial_server_thread_data->change_state_flags = change_state_flags;
-	critial_server_thread_data->attach = NULL;
 }
 
 int main(void) {
 
 	while (1) {
 
-		printf("At reset point\n");
 
 		rail_state_data_t rail_state_data;
 		rail_input_data_t input_data;
@@ -67,11 +62,9 @@ int main(void) {
 		input_thread_data_t input_thread_data;
 		ouput_thread_data_t ouput_thread_data;
 		critial_client_thread_data_t critial_client_thread_data;
-		critial_server_thread_data_t critial_server_thread_data;
 		fault_data_t fault_data;
 		reset_data_t reset_data;
 		change_state_flags_t change_state_flags;
-		int change_state_channel_id;
 
 		initData(
 			&rail_state_data,
@@ -80,7 +73,6 @@ int main(void) {
 			&input_thread_data,
 			&ouput_thread_data,
 			&critial_client_thread_data,
-			&critial_server_thread_data,
 			&fault_data,
 			&reset_data,
 			&change_state_flags);
@@ -90,35 +82,30 @@ int main(void) {
 		pthread_t th_rail_state_machine;
 		pthread_t th_output;
 		pthread_t th_critical_client_channel;
-		pthread_t th_critical_server_channel;
 
 		// Thread attributes
 		pthread_attr_t th_input_attr;
 		pthread_attr_t th_rail_state_machine_attr;
 		pthread_attr_t th_output_attr;
 		pthread_attr_t th_critical_client_channel_attr;
-		pthread_attr_t th_critical_server_channel_attr;
 
 		// Thread schedule parameters
 		struct sched_param th_input_param;
 		struct sched_param th_rail_state_machine_param;
 		struct sched_param th_output_param;
 		struct sched_param th_critical_client_channel_param;
-		struct sched_param th_critical_server_channel_param;
 
 		// Set thread attributes
 		setThreadSettings(&th_input_attr, &th_input_param, RC_INPUT_THREAD_PRIORITY, true);
 		setThreadSettings(&th_rail_state_machine_attr, &th_rail_state_machine_param, RC_RAIL_STATE_MACHINE_THREAD_PRIORITY, false);
 		setThreadSettings(&th_output_attr, &th_output_param, RC_OUTPUT_THREAD_PRIORITY, true);
 		setThreadSettings(&th_critical_client_channel_attr, &th_critical_client_channel_param, RC_CRIT_CLIENT_CHANNEL_THREAD_PRIORITY, true);
-		setThreadSettings(&th_critical_server_channel_attr, &th_critical_server_channel_param, RC_CRIT_SERVER_CHANNEL_THREAD_PRIORITY, true);
 
 		// Spawn threads
 		pthread_create(&th_input, &th_input_attr, &inputThread, &input_thread_data);
 		pthread_create(&th_rail_state_machine, &th_rail_state_machine_attr, &railStateMachine, &state_machine_thread_data);
 		pthread_create(&th_output, &th_output_attr, LCD_Control, &ouput_thread_data);
 		pthread_create(&th_critical_client_channel, &th_critical_client_channel_attr, &critical_client_channel_thread, &critial_client_thread_data);
-		pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critial_server_thread_data);
 
 		pthread_join(th_rail_state_machine, NULL);
 
@@ -127,8 +114,6 @@ int main(void) {
 		pthread_cancel(th_input);
 		pthread_cancel(th_output);
 		pthread_cancel(th_critical_client_channel);
-		pthread_cancel(th_critical_server_channel);
-		name_detach(critial_server_thread_data.attach, NULL);
 
 		printf("Threads destroyed\n");
 

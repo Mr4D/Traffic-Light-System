@@ -27,11 +27,15 @@
 #define RC_CRITICAL_CHANNEL "grp11_sig_recieve"
 #define RCC_CRITICAL_CHANNEL "grp11_rail_state_recieve"
 
+
+
 /* QNET Channels */
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL // hostname using full path, change myname to the name used for server
 #define TCC_INPUT_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_INPUT_CHANNEL  // hostname using full path, change myname to the name used for server
 #define I1_CRITICAL_CHANNEL_ATTACH_POINT "/net/" I1_HOSTNAME "/dev/name/local/" I1_CRITICAL_CHANNEL	// hostname using full path, change myname to the name used for server
 #define RCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RCC_HOSTNAME "/dev/name/local/" RCC_CRITICAL_CHANNEL
+#define RC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RAIL_HOSTNAME "/dev/name/local/" RC_CRITICAL_CHANNEL
+
 
 /* Client IDs */
 #define I1_CLIENT_ID 1
@@ -110,7 +114,8 @@ typedef enum {
 /* Train states*/
 typedef enum {
 	TRAIN,
-	NO_TRAIN
+	NO_TRAIN,
+	FAULT_TRAIN
 } rail_state_t;
 
 typedef enum {

@@ -7,7 +7,7 @@
 void printOptions(){
 
 	printf("Options:\n");
-	printf("  -g state <node>\tget state of node (default=all)\n");
+	printf("  -g state\tget state of node (default=all)\n");
 	printf("  -g mode\t\tget system mode\n");
 	printf("  -s mode value\t\tset system mode\n");
 	printf("  -s fault <node>\tset fault node to fault(default=all)\n");
@@ -16,7 +16,6 @@ void printOptions(){
 	printf("\nNode:\n");
 	printf("  i1: Intersection 1\n");
 	printf("  i2: Intersection 2\n");
-	printf("  x1: Rail Crossing 1\n");
 
 	printf("\nValue:\n");
 	printf("  peak: \tPeak\n");
@@ -107,10 +106,6 @@ int main(int argc,char *argv[]) {
 					node = I2_NODE;
 					valid_input = 1;
 				}
-				else if(0 == strcmp(argv[3], "x1") && option == STATE_OPTION){
-					node = X1_NODE;
-					valid_input = 1;
-				}
 				else {
 					printf("\nIncorrect Node: '%s'\n", argv[3]);
 				}
@@ -145,30 +140,19 @@ int main(int argc,char *argv[]) {
 		if (MsgSend(server_coid, &msg, sizeof(msg), &replymsg, sizeof(replymsg)) == -1) {
 			printf(" Error data '%d' NOT sent to server\n", msg.func);
 			// maybe we did not get a reply from the server
-		} else { // now process the reply
+		}
+		if(option == STATE_OPTION && func == GET_FUNC) { // now process the reply
 			printf("   -->Reply \n");
 			printf("   \ti1  : '%d'\n", replymsg.data.state.i1);
 			printf("   \ti2  : '%d'\n", replymsg.data.state.i2);
 			printf("   \tx1  : '%d'\n", replymsg.data.state.x1);
+		}
+		if (option == MODE_OPTION && func == GET_FUNC){
 			printf("   \tmode: '%d'\n", replymsg.data.state.mode);
 		}
 
 		ConnectDetach(server_coid);
-//		if(func == GET_FUNC && option == STATE){
-//			printf("Get state: %d\n", node);
-//		}
-//		else if(func == GET_FUNC && option == MODE){
-//			printf("Get mode\n");
-//		}
-//		else if(func == SET_FUNC && option == MODE){
-//			printf("Set mode\tmode: %d\n", mode);
-//		}
-//		else if(func == SET_FUNC && option == FAULT){
-//			printf("Set fault\tnode :%d\n", node);
-//		}
-//		else if(func == SET_FUNC && option == RESET){
-//			printf("Set reset\tnode :%d\n", node);
-//		}
+
 	}
 
 

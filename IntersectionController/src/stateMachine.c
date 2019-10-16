@@ -90,16 +90,13 @@ void * trafficStateMachine(void *data) {
 			mode = mode_data->mode;
 		pthread_rwlock_unlock( &mode_data->rwlock );
 
-		pthread_mutex_lock(&fault_data->mutex);			// Save the fault flag state
-			fault_flag = fault_data->fault;
-		pthread_mutex_unlock(&fault_data->mutex);
 
 		pthread_rwlock_rdlock(&input_data->rwlock_input);	// get input flags
 			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 		pthread_rwlock_unlock(&input_data->rwlock_input);
 
 		//printInputBuf(input_queue.input_buffer, input_queue.end_index);
-		if (fault_flag) {
+		if (state_flags.fault) {
 			next_state = handleFaultSig(current_state);
 		}
 		else if (mode == PEAK) {

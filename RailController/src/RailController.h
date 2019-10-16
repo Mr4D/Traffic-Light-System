@@ -12,9 +12,7 @@
 #include <traffic_library.h>
 #include <traffic_types.h>
 
-#define NULL_PULSE 0
-#define TRAIN_INPUT_PULSE 1
-#define NO_TRAIN_INPUT_PULSE 2
+
 
 typedef enum {
 	ON,
@@ -22,7 +20,8 @@ typedef enum {
 } InputSignal;
 
 typedef struct {
-	InputSignal train;
+	InputSignal e_train;
+	InputSignal w_train;
 	pthread_rwlock_t rwlock_input;
 } rail_input_data_t;
 

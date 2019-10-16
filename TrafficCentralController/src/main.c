@@ -93,6 +93,7 @@ int main(void) {
 	pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critical_server_thread_data);
 	//pthread_create(&th_output, &th_output_attr, &t_output, &output_thread_data);
 
+
 	pthread_join(th_critical_server_channel, NULL);
 	pthread_join(th_output, NULL);
 	

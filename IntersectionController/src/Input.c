@@ -140,8 +140,17 @@ void *inputThread(void *data) {
 				case EW_P:
 					if (!containsTrafficInputBuf(&input_queue, EW_P)) {
 						writeTrafficInputBuf(&input_queue, EW_P);
-
 					}
+					break;
+				case FAULT_INPUT:
+					pthread_sleepon_lock();
+						change_state_flags->fault = true;
+					pthread_sleepon_unlock();
+					break;
+				case RESET_INPUT:
+					pthread_sleepon_lock();
+						change_state_flags->reset = true;
+					pthread_sleepon_unlock();
 					break;
 				default:
 					break;
@@ -207,83 +216,58 @@ int DecodeKeyValue(uint32_t word) {
 
 	switch (word) {
 		case 0x01:
-			printf("Key  1 pressed\n");
 			key = 1;
 			break;
 		case 0x02:
-			printf("Key  2 pressed\n");
 			key = 2;
 			break;
 		case 0x04:
-			printf("Key  3 pressed\n");
 			key = 3;
 			break;
 		case 0x08:
-			printf("Key  4 pressed\n");
 			key = 4;
 			break;
 		case 0x10:
-			printf("Key  5 pressed\n");
 			key = 5;
 			break;
 		case 0x20:
-			printf("Key  6 pressed\n");
 			key = 6;
 			break;
 		case 0x40:
-			printf("Key  7 pressed\n");
 			key = 7;
 			break;
 		case 0x80:
-			printf("Key  8 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 8;
 			break;
 		case 0x100:
-			printf("Key  9 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 9;
 			break;
 		case 0x200:
-			printf("Key 10 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 10;
 			break;
 		case 0x400:
-			printf("Key 11 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 11;
 			break;
 		case 0x800:
-			printf("Key 12 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 12;
 			break;
 		case 0x1000:
-			printf("Key 13 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 13;
 			break;
 		case 0x2000:
-			printf("Key 14 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 14;
 			break;
 		case 0x4000:
-			printf("Key 15 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 15;
 			break;
 		case 0x8000:
-			printf("Key 16 pressed\n");
-			//pthread_create(NULL, NULL, Flash_LED0_ex, NULL); // flash LED
 			key = 16;
 			usleep(1); // do this so we only fire once
 			break;
 		case 0x00: // key release event (do nothing)
 			break;
 		default:
-			printf("Key pressed could not be determined - %lu\n", word);
+			break;
 	}
 
 	return key;

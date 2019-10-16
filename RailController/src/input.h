@@ -64,8 +64,14 @@
 #define SLEW_SLOW 0x01
 
 //KEYS
-#define TRAIN_INPUT 1
-#define NO_TRAIN_INPUT 2
+#define E_TRAIN_INPUT 1
+#define E_NO_TRAIN_INPUT 2
+#define W_TRAIN_INPUT 5
+#define W_NO_TRAIN_INPUT 6
+
+#define FAULT_INPUT 3
+#define RESET_INPUT 4
+
 
 typedef union _CONF_MODULE_PIN_STRUCT { // See TRM Page 1420
 

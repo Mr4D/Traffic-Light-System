@@ -8,8 +8,8 @@ void *railStateMachine(void *data) {
 	int rcvid;
 
 	rail_state_t current_state = NO_TRAIN;
-	InputSignal rail_input;
-
+	InputSignal e_rail_input;
+	InputSignal w_rail_input;
 	state_machine_thread_data_t *thread_data = (state_machine_thread_data_t *)data;
 
 	rail_input_data_t *input_data = thread_data->input_data;
@@ -18,19 +18,23 @@ void *railStateMachine(void *data) {
 	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
 	change_state_flags_t state_flags;
 
-	while (1) {
+	bool exit = false;
+	while (!exit) {
 
-		printf("read input\n");
 		// get input flags
 		pthread_rwlock_rdlock(&input_data->rwlock_input);
-			rail_input = input_data->train;
+			e_rail_input = input_data->e_train;
+			w_rail_input = input_data->w_train;
 		pthread_rwlock_unlock(&input_data->rwlock_input);
 
 		// get current state
-		if (rail_input == ON) {
+		if(state_flags.fault){
+			current_state = FAULT_TRAIN;
+		}
+		else if (e_rail_input == ON || w_rail_input == ON) {
 			current_state = TRAIN;
 		}
-		else if (rail_input == OFF) {
+		else if (e_rail_input == OFF && w_rail_input == OFF) {
 			current_state = NO_TRAIN;
 		}
 		else {
@@ -39,7 +43,6 @@ void *railStateMachine(void *data) {
 
 		// update previous state
 
-		printf("update state\n");
 		// update current state shared data
 		pthread_mutex_lock(&state_data->mutex_state);
 			state_data->current_state = current_state;
@@ -51,16 +54,12 @@ void *railStateMachine(void *data) {
 		printState(state_data->current_state);
 
 
-		printf("Waiting for input\n");
-
 
 		bool change_state = false;
 		while (!change_state) {
 
 			pthread_sleepon_lock();
-				printf("sleepon wait\n");
 				pthread_sleepon_wait(change_state_flags);
-				printf("memcpy\n");
 				memcpy(&state_flags, change_state_flags, sizeof(state_flags));
 			pthread_sleepon_unlock();
 
@@ -73,9 +72,12 @@ void *railStateMachine(void *data) {
 		// Clear the input flag
 		pthread_sleepon_lock();
 			state_flags.input = false;
-		pthread_sleepon_unlock();			
+		pthread_sleepon_unlock();
 
-		printf("\t\tCHANGE STATE\n");
+		if(state_flags.reset && (current_state == FAULT_TRAIN || current_state == NO_TRAIN)) {
+			exit = true;
+		}
+
 	}
 	return EXIT_SUCCESS;
 }

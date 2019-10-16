@@ -18,6 +18,8 @@
 #define EW_STR 5
 #define EW_R 6
 #define EW_P 7
+#define FAULT_INPUT 10
+#define RESET_INPUT 11
 
 // Input Signal Buffer
 typedef struct {

@@ -41,14 +41,14 @@ int main(void) {
 	
 	// Set thread attributes
 	setThreadSettings(&th_critical_client_channel_attr, &th_critical_client_channel_param, RCC_CRIT_CLIENT_CHANNEL_THREAD_PRIORITY, true);
-	setThreadSettings(&th_critical_server_channel_attr, &th_critical_server_channel_param, RCC_CRIT_SERVER_CHANNEL_THREAD_PRIORITY, true);
+	setThreadSettings(&th_critical_server_channel_attr, &th_critical_server_channel_param, RCC_CRIT_SERVER_CHANNEL_THREAD_PRIORITY, false);
 	
 	// Spawn threads
-	pthread_create(&th_critical_client_channel, &th_critical_client_channel, &critical_client_channel_thread, &critical_client_channel_thread_data);
-	pthread_create(&th_critical_server_channel, &th_critical_server_channel, &critical_server_channel_thread, &critical_server_channel_thread_data);
+	pthread_create(&th_critical_client_channel, &th_critical_client_channel_attr, &critical_client_channel_thread, &critical_client_channel_thread_data);
+	pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critical_server_channel_thread_data);
 
-	pthread_join(th_critical_client_channel, NULL);
 	pthread_join(th_critical_server_channel, NULL);
 
+	printf("main terminating\n");
 	return EXIT_SUCCESS;
 }
