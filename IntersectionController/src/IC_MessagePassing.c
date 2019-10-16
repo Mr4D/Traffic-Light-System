@@ -16,12 +16,12 @@ void * critical_server_channel_thread(void * data) {
 
 	// Create a local name (/dev/name/...)
 	if ((attach = createChannel(I1_CRITICAL_CHANNEL)) == NULL) {
-		printf("couldn't create channel\n");
+		printf("couldn't create channel (I1)\n");
 		pthread_exit(NULL);
 	}
 	else {
 		thread_data->attach = attach;
-		printf("channel: %s\n", I1_CRITICAL_CHANNEL);
+		printf("channel: %s (I1)\n", I1_CRITICAL_CHANNEL);
 	}
 
 
@@ -40,12 +40,12 @@ void * critical_server_channel_thread(void * data) {
 	while (!reset) {
 	// Do your MsgReceive's here now with the chid
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
-	  printf("message received\n");
+	  printf("message received (I1)\n");
 
 	  if (rcvid == -1)  // Error condition, exit
 	  {
 		  if(LOG){
-			  writeTrafficLogFile(LOG_FILE_NAME,"\nFailed to MsgReceive\n");
+			  writeTrafficLogFile(LOG_FILE_NAME,"\n(I1) - Failed to MsgReceive\n");
 		  }
 		  break;
 	  }
@@ -71,7 +71,7 @@ void * critical_server_channel_thread(void * data) {
 			   // put your message handling code here and assemble a reply message
 
 			  if(LOG){
-				  sprintf(log_message, "Server received data packet with value of '%d' from client (ID:%d), ", msg.data.rail_state, msg.client_id);
+				  sprintf(log_message, "(I1) - Server received data packet with value of '%d' from client (ID:%d), ", msg.data.rail_state, msg.client_id);
 				  writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			  }
 			   fflush(stdout);
@@ -131,7 +131,7 @@ void * critical_server_channel_thread(void * data) {
 			   }
 
 			   if(LOG){
-				   sprintf(log_message, "\n    -----> replying with: '%d'\n",replymsg.data.traffic_state);
+				   sprintf(log_message, "\n(I1)\t-----> replying with: '%d'\n",replymsg.data.traffic_state);
 				   writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			   }
 //			   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
