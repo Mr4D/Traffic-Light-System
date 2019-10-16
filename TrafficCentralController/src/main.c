@@ -65,23 +65,37 @@ int main(void) {
 			 &traffic_mode_data,
 			 &msg_send,
 			 &i1_send);
+	
+	// Thread definitions
+	pthread_t th_input; // define
+	pthread_t th_output;
+	pthread_t th_critical_server_channel;
 
-	pthread_t input;
-	pthread_t output;
-	pthread_t critical_server_channel;
+	// Thread attributes
+	pthread_attr_t th_input_attr; // define
+	pthread_attr_t th_output_attr;
+	pthread_attr_t th_critical_server_channel_attr;
+	pthread_attr_t th_send_attr;
 
-	pthread_t send;
-//	pthread_create(&send, NULL, &sendMessage, &i1_send);
-//	pthread_join(send, NULL);
+	// Thread schedule parameters
+	struct sched_param th_input_param; // define
+	struct sched_param th_output_param;
+	struct sched_param th_critical_server_channel_param;
+	struct sched_param th_send_param;
 
-	pthread_create(&critical_server_channel, NULL, &critical_server_channel_thread, &critical_server_thread_data);
-	pthread_create(&input, NULL, &inputThread, &input_thread_data);
-	//pthread_create(&output, NULL, &t_output, &output_thread_data);
+	// Set thread attributes
+	setThreadSettings(&th_output_attr, &th_output_param, TCC_OUTPUT_THREAD_PRIORITY, false);
+	setThreadSettings(&th_critical_server_channel_attr, &th_critical_server_channel_param, TCC_CRIT_SERVER_CHANNEL_THREAD_PRIORITY, false);
+	setThreadSettings(&th_send_attr, &th_send_param, TCC_SEND_THREAD_PRIORITY, false);
 
-	pthread_join(critical_server_channel, NULL);
-	pthread_join(input, NULL);
-	//pthread_join(output, NULL);
+	// Spawn threads
+	pthread_create(&th_input, NULL, &inputThread, &input_thread_data);
+	pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critical_server_thread_data);
+	//pthread_create(&th_output, &th_output_attr, &t_output, &output_thread_data);
 
+	pthread_join(th_critical_server_channel, NULL);
+	pthread_join(th_output, NULL);
+	
 	printf("Main terminating\n");
 	return EXIT_SUCCESS;
 }

@@ -27,14 +27,28 @@ int main(void) {
 			 &critical_client_channel_thread_data,
 			 &critical_server_channel_thread_data);
 
-	pthread_t t_critical_client_channel;
-	pthread_t t_critical_server_channel;
+	// Thread definitions
+	pthread_t th_critical_client_channel;
+	pthread_t th_critical_server_channel;
 
-	pthread_create(&t_critical_client_channel, NULL, &critical_client_channel_thread, &critical_client_channel_thread_data);
-	pthread_create(&t_critical_server_channel, NULL, &critical_server_channel_thread, &critical_server_channel_thread_data);
+	// Thread attributes
+	pthread_attr_t th_critical_client_channel_attr;
+	pthread_attr_t th_critical_server_channel_attr;
 
-	pthread_join(t_critical_client_channel, NULL);
-	pthread_join(t_critical_server_channel, NULL);
+	// Thread schedule parameters
+	struct sched_param th_critical_client_channel_param;
+	struct sched_param th_critical_server_channel_param;
+	
+	// Set thread attributes
+	setThreadSettings(&th_critical_client_channel_attr, &th_critical_client_channel_param, RCC_CRIT_CLIENT_CHANNEL_THREAD_PRIORITY, true);
+	setThreadSettings(&th_critical_server_channel_attr, &th_critical_server_channel_param, RCC_CRIT_SERVER_CHANNEL_THREAD_PRIORITY, true);
+	
+	// Spawn threads
+	pthread_create(&th_critical_client_channel, &th_critical_client_channel, &critical_client_channel_thread, &critical_client_channel_thread_data);
+	pthread_create(&th_critical_server_channel, &th_critical_server_channel, &critical_server_channel_thread, &critical_server_channel_thread_data);
+
+	pthread_join(th_critical_client_channel, NULL);
+	pthread_join(th_critical_server_channel, NULL);
 
 	return EXIT_SUCCESS;
 }

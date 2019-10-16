@@ -66,6 +66,16 @@ void * inputThread(void * data) {
 
 				if(msg.func == GET_FUNC){
 					printf("GET_FUNC\n");
+					get_state_thread_data_t get_state_thread_data = {
+							i1_state_data,
+							i2_state_data
+					};
+					pthread_t th_get_state;
+					printf("spawn thread\n");
+					pthread_create(&th_get_state, NULL, &getStateData, &get_state_thread_data);
+					pthread_join(th_get_state, NULL);
+					printf("joined\n");
+
 					pthread_mutex_lock(&i1_state_data->mutex_state);
 						replymsg.data.state.i1 = i1_state_data->current_state;
 					pthread_mutex_unlock(&i1_state_data->mutex_state);
@@ -103,11 +113,13 @@ void * inputThread(void * data) {
 							send_message_thread_data_t i1_send = {
 									I1_CRITICAL_CHANNEL_ATTACH_POINT,
 									&msg_send,
+									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
 //							send_message_thread_data_t i2_send = {
 //									I2_CRITICAL_CHANNEL_ATTACH_POINT,
 //									&msg_send,
+//									NULL,
 //									PTHREAD_RWLOCK_INITIALIZER
 //							};
 
@@ -120,6 +132,7 @@ void * inputThread(void * data) {
 							send_message_thread_data_t i1_send = {
 									I1_CRITICAL_CHANNEL_ATTACH_POINT,
 									&msg_send,
+									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
 							pthread_create(NULL, NULL, &sendMessage, &i1_send);
@@ -129,6 +142,7 @@ void * inputThread(void * data) {
 //							send_message_thread_data_t i2_send = {
 //									I2_CRITICAL_CHANNEL_ATTACH_POINT,
 //									&msg_send,
+//									NULL
 //									PTHREAD_RWLOCK_INITIALIZER
 //							};
 //							pthread_create(&send, NULL, &sendMessage, &i2_send);
@@ -147,6 +161,7 @@ void * inputThread(void * data) {
 							send_message_thread_data_t i1_send = {
 									I1_CRITICAL_CHANNEL_ATTACH_POINT,
 									&msg_send,
+									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
 //							send_message_thread_data_t i2_send = {
@@ -163,6 +178,7 @@ void * inputThread(void * data) {
 							send_message_thread_data_t i1_send = {
 									I1_CRITICAL_CHANNEL_ATTACH_POINT,
 									&msg_send,
+									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
 							pthread_create(NULL, NULL, &sendMessage, &i1_send);

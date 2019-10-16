@@ -57,21 +57,27 @@ void *critical_server_channel_thread(void *data) {
 					if (msg.hdr.type == RAIL_STATE_MSG) {
 						printf("RAIL_STATE_MSG\n");
 						pthread_mutex_lock(&x1_data_state->mutex_state);
-						x1_data_state->current_state = msg.data.rail_state;
+							x1_data_state->current_state = msg.data.rail_state;
 						pthread_mutex_unlock(&x1_data_state->mutex_state);
 
 						msg_send.hdr.type = RAIL_STATE_MSG;
 						msg_send.data.rail_state = msg.data.rail_state;
 
 						send_message_thread_data_t i1_send = {
-							I1_CRITICAL_CHANNEL,
-							&msg_send};
-						pthread_create(NULL, NULL, &sendMessage, &i1_send);
+							I1_CRITICAL_CHANNEL_ATTACH_POINT,
+							&msg_send,
+							NULL,
+							PTHREAD_RWLOCK_INITIALIZER
+						};
+//						send_message_thread_data_t i2_send = {
+//							I2_CRITICAL_CHANNEL_ATTACH_POINT,
+//							&msg_send,
+//							NULL,
+//							PTHREAD_RWLOCK_INITIALIZER
+//						 };
 
-						// send_message_thread_data_t i2_send = {
-						// 	I2_CRITICAL_CHANNEL,
-						// 	&msg_send};
-						// pthread_create(NULL, NULL, &sendMessage, &i2_send);
+						pthread_create(NULL, NULL, &sendMessage, &i1_send);
+						//pthread_create(NULL, NULL, &sendMessage, &i2_send);
 
 						sprintf(replymsg.data.buf, "OK");
 					}
@@ -91,4 +97,49 @@ void *critical_server_channel_thread(void *data) {
 
 	// Remove the attach point name from the file system (i.e. /dev/name/local/<myname>)
 	ChannelDestroy(attach->chid);
+}
+
+void * getStateData( void * data){
+
+	get_state_thread_data_t * thread_data = (get_state_thread_data_t*)data;
+	traffic_state_data_t * i1_state_data = thread_data->i1_state_data;
+	traffic_state_data_t * i2_state_data = thread_data->i2_state_data;
+
+	msg_data_t msg_send;
+	msg_send.client_id = TCC_CLIENT_ID;
+	msg_send.hdr.type = STATE_REQUEST_MSG;
+	msg_reply_t i1_reply;
+	msg_reply_t i2_reply;
+
+	send_message_thread_data_t i1_send = {
+		I1_CRITICAL_CHANNEL_ATTACH_POINT,
+		&msg_send,
+		&i1_reply,
+		PTHREAD_RWLOCK_INITIALIZER
+	};
+//	send_message_thread_data_t i2_send = {
+//		I2_CRITICAL_CHANNEL_ATTACH_POINT,
+//		&msg_send,
+//		&i1_reply,
+//		PTHREAD_RWLOCK_INITIALIZER
+//	 };
+
+	pthread_t i1_state_request;
+	//pthread_t i2_state_request;
+	pthread_create(&i1_state_request, NULL, &sendMessage, &i1_send);
+	//pthread_create(&i2_state_request, NULL, &sendMessage, &i2_send);
+
+
+	pthread_join(i1_state_request, NULL);
+	//pthread_join(i2_state_request, NULL);
+
+	printf("reply state: %d\n", i1_reply.data.traffic_state);
+
+	pthread_mutex_lock(&i1_state_data->mutex_state);
+		i1_state_data->current_state = i1_reply.data.traffic_state;
+	pthread_mutex_unlock(&i1_state_data->mutex_state);
+
+//	pthread_mutex_lock(&i2_state_data->mutex_state);
+//		i2_state_data->current_state = i2_reply.data.traffic_state;
+//	pthread_mutex_unlock(&i2_state_data->mutex_state);
 }
