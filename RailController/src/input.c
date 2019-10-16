@@ -8,7 +8,6 @@ void *inputThread(void *data) {
 	rail_input_data_t *input_data = thread_data->input_data;
 	change_state_flags_t *change_state_flags = thread_data->change_state_flags;
 
-	int pulse_code = NULL_PULSE;
 	// gain access to device registers for "Control Module" and "GPIO1"
 	uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
 	uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE, AM335X_GPIO1_BASE);
@@ -18,15 +17,15 @@ void *inputThread(void *data) {
 	ISR_area_data.count_thread = 0;
 	ISR_area_data.gpio1_base = gpio1_base;
 
-	printf("memset\n");
+	printf("\tmemset\n");
 	memset(&ISR_area_data.pevent, 0, sizeof(ISR_area_data.pevent));
 	SIGEV_INTR_INIT(&ISR_area_data.pevent);
 	ISR_area_data.pevent.sigev_notify = SIGEV_INTR; // Setup for external interrupt
 
-	printf("ThreadCtl\n");
+	printf("\tThreadCtl\n");
 	// we also need to have the PROCMGR_AID_INTERRUPT and PROCMGR_AID_IO abilities enabled. For more information, see procmgr_ability().
 	ThreadCtl(_NTO_TCTL_IO_PRIV, 1); // Request I/O privileges  for QNX7;
-	printf("procmgr_ability\n");
+	printf("\tprocmgr_ability\n");
 	//procmgr_ability( 0, PROCMGR_AID_INTERRUPT | PROCMGR_AID_IO);
 
 	printf("if( (control_module)&&(gpio1_base) )\n");
@@ -84,19 +83,19 @@ void *inputThread(void *data) {
 		InterruptUnmask(GPIO1_IRQ, id); // Enable a hardware interrupt
 
 		int i = 0;
-		printf("Main entering loop and will call InterruptWait\n");
+		printf("\tMain entering loop and will call InterruptWait\n");
 
 		for (;;) {
 			
-			printf("Waiting for signal\n");
+			printf("\tWaiting for signal\n");
 			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
 			InterruptWait(0, NULL); // block this thread until an interrupt occurs  (Wait for a hardware interrupt)
 			
 			// printf("do interrupt work here...\n");
 			int val = readKeypad(gpio1_base);
 
-			pthread_rwlock_wrlock(&input_data->rwlock_input);
 			printf("input recieved\n");
+			pthread_rwlock_wrlock(&input_data->rwlock_input);
 			switch (val) {
 
 				case TRAIN_INPUT:

@@ -118,7 +118,7 @@ int main(void) {
 		pthread_create(&th_rail_state_machine, &th_rail_state_machine_attr, &railStateMachine, &state_machine_thread_data);
 		pthread_create(&th_output, &th_output_attr, LCD_Control, &ouput_thread_data);
 		pthread_create(&th_critical_client_channel, &th_critical_client_channel_attr, &critical_client_channel_thread, &critial_client_thread_data);
-		pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &rail_state_data);
+		pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critial_server_thread_data);
 
 		pthread_join(th_rail_state_machine, NULL);
 

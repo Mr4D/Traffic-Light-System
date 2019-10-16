@@ -20,6 +20,7 @@ void *railStateMachine(void *data) {
 
 	while (1) {
 
+		printf("read input\n");
 		// get input flags
 		pthread_rwlock_rdlock(&input_data->rwlock_input);
 			rail_input = input_data->train;
@@ -38,6 +39,7 @@ void *railStateMachine(void *data) {
 
 		// update previous state
 
+		printf("update state\n");
 		// update current state shared data
 		pthread_mutex_lock(&state_data->mutex_state);
 			state_data->current_state = current_state;
@@ -56,7 +58,9 @@ void *railStateMachine(void *data) {
 		while (!change_state) {
 
 			pthread_sleepon_lock();
+				printf("sleepon wait\n");
 				pthread_sleepon_wait(change_state_flags);
+				printf("memcpy\n");
 				memcpy(&state_flags, change_state_flags, sizeof(state_flags));
 			pthread_sleepon_unlock();
 

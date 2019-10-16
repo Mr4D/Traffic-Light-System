@@ -133,11 +133,13 @@ void * getStateData( void * data){
 	pthread_join(i1_state_request, NULL);
 	//pthread_join(i2_state_request, NULL);
 
-	printf("reply state: %d\n", i1_reply.data.traffic_state);
 
-	pthread_mutex_lock(&i1_state_data->mutex_state);
-		i1_state_data->current_state = i1_reply.data.traffic_state;
-	pthread_mutex_unlock(&i1_state_data->mutex_state);
+		printf("reply state: %d\n", i1_reply.data.traffic_state);
+
+
+		pthread_mutex_lock(&i1_state_data->mutex_state);
+			i1_state_data->current_state = i1_reply.data.traffic_state;
+		pthread_mutex_unlock(&i1_state_data->mutex_state);
 
 //	pthread_mutex_lock(&i2_state_data->mutex_state);
 //		i2_state_data->current_state = i2_reply.data.traffic_state;

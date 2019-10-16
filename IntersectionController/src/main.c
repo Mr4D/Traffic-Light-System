@@ -149,9 +149,9 @@ int main(void) {
 
 		// Spawn threads
 		pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critical_server_data);
-		//pthread_create(&th_input, &th_input_attr, &inputThread, &input_thread_data);
+		pthread_create(&th_input, &th_input_attr, &inputThread, &input_thread_data);
 		pthread_create(&th_traffic_state_machine, &th_traffic_state_machine_attr, &trafficStateMachine, &state_machine_thread_data);
-		//pthread_create(&th_output, &th_output_attr, LCD_Control, &output_thread_data);
+		pthread_create(&th_output, &th_output_attr, LCD_Control, &output_thread_data);
 
 		pthread_join(th_traffic_state_machine, NULL);		// Join state machine. This thread should exit on a reset signal
 

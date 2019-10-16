@@ -10,14 +10,17 @@ void *critical_client_channel_thread(void *data) {
 
 	int server_coid = -1;
 
+	printf("\tConnect to RCC\n");
 	while (server_coid == -1) {
 		printf("  ---> Trying to connect to server named: %s\n", RCC_CRITICAL_CHANNEL_ATTACH_POINT);
 		if ((server_coid = name_open(RCC_CRITICAL_CHANNEL_ATTACH_POINT, 0)) == -1) {
 			printf("\n    ERROR, could not connect to server!\n\n");
 			// return EXIT_FAILURE;
 		}
+		printf(" sleep 3\n");
 		sleep(3);
 	}
+	printf("Connection established to: %s\n", RCC_CRITICAL_CHANNEL_ATTACH_POINT);
 
 	if (LOG) {
 		sprintf(log_message, "Connection established to: %s\n", RCC_CRITICAL_CHANNEL_ATTACH_POINT);
@@ -30,16 +33,18 @@ void *critical_client_channel_thread(void *data) {
 	msg.client_id = X1_CLIENT_ID;
 
 	while (1) {
+
 		pthread_mutex_lock(&state_data->mutex_state);
 
-		while (!state_data->data_ready) {
-			pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
-		}
+			while (!state_data->data_ready) {
+				printf("\t cond wait\n");
+				pthread_cond_wait(&state_data->cond_state_changed, &state_data->mutex_state);
+			}
 
-		msg.data.rail_state = state_data->current_state;
-		state_data->data_ready = false;
+			msg.data.rail_state = state_data->current_state;
+			state_data->data_ready = false;
 
-		pthread_cond_signal(&state_data->cond_state_changed);
+		//pthread_cond_signal(&state_data->cond_state_changed);
 		pthread_mutex_unlock(&state_data->mutex_state);
 
 		if (LOG) {
@@ -49,6 +54,8 @@ void *critical_client_channel_thread(void *data) {
 
 		printf("Client (ID:%d), sending data packet with the state value: %d \n", msg.client_id, msg.data.rail_state);
 		fflush(stdout);
+
+		printf("send msg\n");
 		if (MsgSend(server_coid, &msg, sizeof(msg), &reply, sizeof(reply)) == -1) {
 			printf(" Error data '%d' NOT sent to server\n", msg.data.rail_state);
 			// maybe we did not get a reply from the server
@@ -90,6 +97,7 @@ void *critical_server_channel_thread(void *data) {
 
 	living = 1;
 
+	printf("\tserver running\n");
 	bool reset = false;
 	while (!reset) {
 		// Do your MsgReceive's here now with the chid
