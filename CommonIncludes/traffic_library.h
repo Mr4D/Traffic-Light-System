@@ -11,9 +11,15 @@ typedef struct {
 
 } send_message_thread_data_t;
 
+void setThreadSettings(pthread_attr_t * th_attr, struct sched_param * th_sched_param, const int priority, const bool detached);
+
 void initTrafficStateData(traffic_state_data_t *traffic_state_data);
 
 void initRailStateData(rail_state_data_t *rail_state_data);
+
+void initFaultData(fault_data_t *fault_data);
+
+void initResetData(reset_data_t *reset_data);
 
 void *sendMessage(void *data);
 

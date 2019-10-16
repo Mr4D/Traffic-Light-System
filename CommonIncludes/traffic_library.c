@@ -1,5 +1,20 @@
 #include "traffic_library.h"
 
+void setThreadSettings(pthread_attr_t * th_attr, struct sched_param * th_sched_param, const int priority, const bool detached) {
+
+	pthread_attr_init(th_attr);											// Init thread attrs to default vals
+	pthread_attr_setschedpolicy(th_attr, SCHED_RR);						// Set scheduling to round robin
+
+	if (detached) {
+		pthread_attr_setdetachstate(th_attr, PTHREAD_CREATE_DETACHED );	// Set thread to deteached mode
+	}
+
+	th_sched_param->sched_priority = priority;							// Set priority of thread
+	pthread_attr_setschedparam(th_attr, th_sched_param);
+	pthread_attr_setinheritsched(th_attr, PTHREAD_EXPLICIT_SCHED);		// Set attr to use explicit scheduling settings
+	// pthread_attr_setstacksize(th_attr, 8000);							// Increase thread stack size
+}
+
 void initTrafficStateData(traffic_state_data_t *traffic_state_data) {
 	traffic_state_data->current_state = INITIAL;
 	traffic_state_data->data_ready = false;
@@ -13,6 +28,19 @@ void initRailStateData(rail_state_data_t *rail_state_data) {
 	pthread_mutex_init(&rail_state_data->mutex_state, NULL);
 	pthread_cond_init(&rail_state_data->cond_state_changed, NULL);
 }
+
+void initFaultData(fault_data_t *fault_data) {
+	fault_data->fault = false;
+	pthread_mutex_init(&fault_data->mutex, NULL);
+}
+
+void initResetData(reset_data_t *reset_data) {
+	reset_data->reset = false;
+	reset_data->data_ready = false;
+	pthread_mutex_init(&reset_data->mutex, NULL);
+	pthread_cond_init(&reset_data->cond, NULL);
+}
+
 
 void *sendMessage(void *data) {
 

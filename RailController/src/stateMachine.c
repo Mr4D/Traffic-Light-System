@@ -14,7 +14,9 @@ void *railStateMachine(void *data) {
 
 	rail_input_data_t *input_data = thread_data->input_data;
 	rail_state_data_t *state_data = thread_data->rail_state_data;
-	int change_state_channel_id = *thread_data->change_state_channel_id; // Create a communications channel
+	
+	change_state_flags_t * change_state_flags = thread_data->change_state_flags;
+	change_state_flags_t state_flags;
 
 	while (1) {
 
@@ -46,32 +48,31 @@ void *railStateMachine(void *data) {
 		// Print state info
 		printState(state_data->current_state);
 
-		// wait for timer
+
+		printf("Waiting for input\n");
+
+
 		bool change_state = false;
 		while (!change_state) {
-			rcvid = MsgReceivePulse(change_state_channel_id, &change_state_msg, sizeof(change_state_msg), NULL); // Wait for timer signal
 
-			if (change_state_msg.code == TRAIN_INPUT_PULSE) {
-				printf("code: %d\n", change_state_msg.code);
+			pthread_sleepon_lock();
+				pthread_sleepon_wait(change_state_flags);
+				memcpy(&state_flags, change_state_flags, sizeof(state_flags));
+			pthread_sleepon_unlock();
 
-				if (current_state == NO_TRAIN) {
-					change_state = true;
-				}
-				printf("INPUT_PULSE\n");
+			if (state_flags.input || state_flags.fault || state_flags.reset) {
+				change_state = true;
 			}
-			else if (change_state_msg.code == NO_TRAIN_INPUT_PULSE) {
-				printf("code: %d\n", change_state_msg.code);
 
-				if (current_state == TRAIN) {
-					change_state = true;
-				}
-				printf("INPUT_PULSE\n");
-			}
 		}
+
+		// Clear the input flag
+		pthread_sleepon_lock();
+			state_flags.input = false;
+		pthread_sleepon_unlock();			
 
 		printf("\t\tCHANGE STATE\n");
 	}
-
 	return EXIT_SUCCESS;
 }
 

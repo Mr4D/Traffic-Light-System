@@ -6,9 +6,7 @@ void *inputThread(void *data) {
 	input_thread_data_t *thread_data = (input_thread_data_t *)data;
 
 	rail_input_data_t *input_data = thread_data->input_data;
-	int change_state_channel_id = *thread_data->change_state_channel_id; // Create a communications channel
-
-	int coid = ConnectAttach(ND_LOCAL_NODE, 0, change_state_channel_id, _NTO_SIDE_CHANNEL, 0);
+	change_state_flags_t *change_state_flags = thread_data->change_state_flags;
 
 	int pulse_code = NULL_PULSE;
 	// gain access to device registers for "Control Module" and "GPIO1"
@@ -89,23 +87,24 @@ void *inputThread(void *data) {
 		printf("Main entering loop and will call InterruptWait\n");
 
 		for (;;) {
+			
+			printf("Waiting for signal\n");
 			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
 			InterruptWait(0, NULL); // block this thread until an interrupt occurs  (Wait for a hardware interrupt)
-
+			
 			// printf("do interrupt work here...\n");
 			int val = readKeypad(gpio1_base);
 
 			pthread_rwlock_wrlock(&input_data->rwlock_input);
+			printf("input recieved\n");
 			switch (val) {
 
 				case TRAIN_INPUT:
 					input_data->train = ON;
-					pulse_code = TRAIN_INPUT_PULSE;
 					break;
 
 				case NO_TRAIN_INPUT:
 					input_data->train = OFF;
-					pulse_code = NO_TRAIN_INPUT_PULSE;
 					break;
 
 				default:
@@ -113,7 +112,12 @@ void *inputThread(void *data) {
 			}
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
-			MsgSendPulse(coid, PULSE_PRIORITY, pulse_code, 0);
+			pthread_sleepon_lock();
+				change_state_flags->input = true;
+				pthread_sleepon_signal(change_state_flags);
+			pthread_sleepon_unlock();
+			
+			// MsgSendPulse(coid, PULSE_PRIORITY, pulse_code, 0);
 			//printInputFlags(input_data);
 			//sched_yield();
 		}

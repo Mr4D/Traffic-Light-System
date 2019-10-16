@@ -28,17 +28,23 @@ typedef struct {
 
 // thread data
 
+typedef struct {
+	bool input;
+	bool fault;
+	bool reset;
+}change_state_flags_t;
+
 // state machine thread
 typedef struct {
 	rail_input_data_t *input_data;
 	rail_state_data_t *rail_state_data;
-	int *change_state_channel_id;
+	change_state_flags_t *change_state_flags;
 } state_machine_thread_data_t;
 
 // input thread
 typedef struct {
 	rail_input_data_t *input_data;
-	int *change_state_channel_id;
+	change_state_flags_t *change_state_flags;
 } input_thread_data_t;
 
 // output thread
@@ -53,7 +59,12 @@ typedef struct {
 
 // critical server thread
 typedef struct {
-
+	fault_data_t *fault_data;
+	reset_data_t *reset_data;
+	change_state_flags_t *change_state_flags;
+	name_attach_t *attach;
 } critial_server_thread_data_t;
+
+
 
 #endif /* RAILCONTROLLER_H_ */
