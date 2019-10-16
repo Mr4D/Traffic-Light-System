@@ -77,6 +77,7 @@ void * critical_server_channel_thread(void * data) {
 			   fflush(stdout);
 				   //sleep(1); // Delay the reply by a second (just for demonstration purposes)
 
+
 			   if(msg.hdr.type == STATE_REQUEST_MSG){
 				   printf("STATE_REQUEST_MSG\n");
 				   pthread_mutex_lock(&traffic_state_data->mutex_state);

@@ -202,6 +202,7 @@ void * trafficStateMachine(void *data) {
 
 		if(state_flags.reset && (current_state == ALL_RED || current_state == FAULT || current_state == INITIAL)){
 			state_machine_exit = true;
+			printf("Exit\n");
 		}
 	};
 

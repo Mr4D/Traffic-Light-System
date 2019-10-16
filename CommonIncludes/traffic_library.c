@@ -14,6 +14,10 @@ void initRailStateData(rail_state_data_t *rail_state_data) {
 	pthread_cond_init(&rail_state_data->cond_state_changed, NULL);
 }
 
+void initModeData(traffic_mode_data_t * traffic_mode_data){
+	traffic_mode_data->mode;
+	pthread_rwlock_init(&traffic_mode_data->rwlock, NULL);
+}
 void *sendMessage(void *data) {
 
 	send_message_thread_data_t *thread_data = (send_message_thread_data_t *)data;

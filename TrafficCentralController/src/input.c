@@ -1,0 +1,196 @@
+/*
+ * input.c
+ *
+ *  Created on: 16Oct.,2019
+ *      Author: NickM_e75acww
+ */
+#include <traffic_library.h>
+#include <traffic_types.h>
+#include "TrafficCentralController.h"
+
+void * inputThread(void * data) {
+
+	name_attach_t * attach = createChannel(TCC_INPUT_CHANNEL);
+
+	input_thread_data_t * thread_data = (input_thread_data_t*)data;
+	traffic_state_data_t *i1_state_data = thread_data->tcc_state_data->i1_state_data;
+	traffic_state_data_t *i2_state_data = thread_data->tcc_state_data->i2_state_data;
+	rail_state_data_t *x1_state_data = thread_data->tcc_state_data->x1_state_data;
+	traffic_mode_data_t * traffic_mode_data = thread_data->tcc_state_data->traffic_mode_data;
+
+	tool_msg_t msg;
+	int rcvid = 0;
+	int Stay_alive = 1, living = 0; // server stays running (ignores _PULSE_CODE_DISCONNECT request)
+
+	tool_reply_t replymsg; // replymsg structure for sending back to client
+	replymsg.hdr.type = REPLY_MSG;
+	replymsg.hdr.subtype = 0x00;
+
+	msg_data_t msg_send;
+	msg_send.client_id = TCC_CLIENT_ID;
+
+	living = 1;
+	while (living) {
+		// Do your MsgReceive's here now with the chid
+		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
+
+		if (rcvid == -1) { // Error condition, exit
+
+			printf("\nFailed to MsgReceive\n");
+			break;
+		}
+
+		// did we receive a Pulse or message?
+		// for Pulses:
+		if (rcvid == 0) { //  Pulse received, work out what type
+			handlePulse(&msg);
+			continue; // go back to top of while loop
+		}
+
+		// for messages:
+		if (rcvid > 0) { // if true then A message was received
+
+			if (msg.hdr.type >= _IO_BASE && msg.hdr.type <= _IO_MAX) {
+				handleIOConnect(&msg, rcvid);
+			}
+			else { // A message (presumably ours) received
+
+				// put your message handling code here and assemble a reply message
+				if (LOG) {
+					//sprintf(log_message, "Server received data packet with value of '%d' from client (ID:%d), ", msg.data.rail_state, msg.client_id);
+					//writeTrafficLogFile(LOG_FILE_NAME, log_message);
+				}
+
+				fflush(stdout);
+				//sleep(1); // Delay the reply by a second (just for demonstration purposes)
+
+				if(msg.func == GET_FUNC){
+					printf("GET_FUNC\n");
+					pthread_mutex_lock(&i1_state_data->mutex_state);
+						replymsg.data.state.i1 = i1_state_data->current_state;
+					pthread_mutex_unlock(&i1_state_data->mutex_state);
+
+					pthread_mutex_lock(&i2_state_data->mutex_state);
+						replymsg.data.state.i2 = i2_state_data->current_state;
+					pthread_mutex_unlock(&i2_state_data->mutex_state);
+
+					pthread_mutex_lock(&i2_state_data->mutex_state);
+						replymsg.data.state.x1 = x1_state_data->current_state;
+					pthread_mutex_unlock(&i2_state_data->mutex_state);
+
+					pthread_rwlock_rdlock(&traffic_mode_data->rwlock);
+						replymsg.data.state.mode = traffic_mode_data->mode = msg.mode;
+					pthread_rwlock_unlock(&traffic_mode_data->rwlock);
+				}
+				else if(msg.func == SET_FUNC){
+					printf("SET_FUNC\n");
+					if(msg.option == MODE_OPTION){
+						printf("MODE_OPTION\n");
+						pthread_rwlock_rdlock(&traffic_mode_data->rwlock);
+						traffic_mode_data->mode = msg.mode;
+						pthread_rwlock_unlock(&traffic_mode_data->rwlock);
+						sprintf(replymsg.data.buf, "OK");
+					}
+
+					else if(msg.option == FAULT_OPTION){
+						printf("FAULT_OPTION\n");
+						msg_send.hdr.type = FAULT_MSG;
+						msg_send.data.fault = true;
+
+
+						if(msg.node == ALL_NODES){
+							printf("\tALL_NODES\n");
+							send_message_thread_data_t i1_send = {
+									I1_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
+//							send_message_thread_data_t i2_send = {
+//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+//									&msg_send,
+//									PTHREAD_RWLOCK_INITIALIZER
+//							};
+
+							pthread_create(NULL, NULL, &sendMessage, &i1_send);
+							//pthread_create(&send, NULL, &sendMessage, &i2_send);
+
+						}
+						else if(msg.node == I1_NODE) {
+							printf("\tI1_NODE\n");
+							send_message_thread_data_t i1_send = {
+									I1_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
+							pthread_create(NULL, NULL, &sendMessage, &i1_send);
+						}
+						else if(msg.node == I2_NODE) {
+							printf("\tI2_NODE\n");
+//							send_message_thread_data_t i2_send = {
+//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+//									&msg_send,
+//									PTHREAD_RWLOCK_INITIALIZER
+//							};
+//							pthread_create(&send, NULL, &sendMessage, &i2_send);
+						}
+					}
+
+					else if (msg.option == RESET_OPTION){
+						printf("RESET_OPTION\n");
+						send_message_thread_data_t i1_send;
+						send_message_thread_data_t i2_send;
+						msg_send.hdr.type = RESET_MSG;
+						msg_send.data.fault = true;
+
+						if(msg.node == ALL_NODES){
+							printf("\tALL_NODES\n");
+							send_message_thread_data_t i1_send = {
+									I1_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
+//							send_message_thread_data_t i2_send = {
+//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+//									&msg_send,
+//									PTHREAD_RWLOCK_INITIALIZER
+//							};
+
+							pthread_create(NULL, NULL, &sendMessage, &i1_send);
+							//pthread_create(&send, NULL, &sendMessage, &i2_send);
+						}
+						else if(msg.node == I1_NODE) {
+							printf("\tI1_NODE\n");
+							send_message_thread_data_t i1_send = {
+									I1_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
+							pthread_create(NULL, NULL, &sendMessage, &i1_send);
+						}
+						else if(msg.node == I2_NODE) {
+							printf("\tI2_NODE\n");
+//							send_message_thread_data_t i2_send = {
+//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+//									&msg_send,
+//									PTHREAD_RWLOCK_INITIALIZER
+//							};
+						}
+					}
+
+					sprintf(replymsg.data.buf, "OK");
+				}
+
+
+				if (LOG) {
+					sprintf(log_message, "\n    -----> replying with: '%s'\n", replymsg.data.buf);
+					writeTrafficLogFile(LOG_FILE_NAME, log_message);
+				}
+				MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
+			}
+		}
+		else {
+			printf("\nERROR: Server received something, but could not handle it correctly\n");
+		}
+	}
+}
+

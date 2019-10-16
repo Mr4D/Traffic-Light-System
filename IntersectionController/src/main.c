@@ -149,24 +149,11 @@ int main(void) {
 		pthread_create(&t_traffic_state_machine, NULL, &trafficStateMachine, &state_machine_thread_data);
 		//pthread_create(&t_output, NULL, LCD_Control, &output_thread_data);
 
-		bool reset = false;
-		while (!reset) {
-			pthread_mutex_lock(&reset_data.mutex);
-			while (!reset_data.data_ready) {
-				printf("waiting()\n");
-				pthread_cond_wait(&reset_data.cond, &reset_data.mutex);
-			}
-
-			reset = reset_data.reset;
-			reset_data.data_ready = false;
-
-			pthread_mutex_unlock(&reset_data.mutex);
-		}
+		pthread_join(t_traffic_state_machine, NULL);
 
 		printf("reseting\n");
 
 		//pthread_abort(t_input);
-		pthread_cancel(t_traffic_state_machine);
 		//pthread_abort(t_output);
 		pthread_cancel(t_critical_server_channel);
 		name_detach(critical_server_data.attach, NULL);

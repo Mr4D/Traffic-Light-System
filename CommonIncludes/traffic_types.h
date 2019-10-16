@@ -14,18 +14,20 @@
 
 #define BUF_SIZE 100
 
-#define I1_HOSTNAME "RMIT_BBB_v5_02"//"RMIT_BBB_v5_02"
-#define TCC_HOSTNAME "RMIT_BBB_v5_03"//"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
+#define I1_HOSTNAME "VM_x86_Target02"//"RMIT_BBB_v5_02"
+#define TCC_HOSTNAME "VM_x86_Target01"//"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
 #define RCC_HOSTNAME "RMIT_BBB_v5_06"
 #define RAIL_HOSTNAME "RMIT_BBB_v5_07"
 
 
 #define TCC_CRITICAL_CHANNEL  "s3378373_state_recieve"
+#define TCC_INPUT_CHANNEL  "s3378373_input_recieve"
 #define I1_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
 #define RCC_CRITICAL_CHANNEL  "s3378373_rail_state_recieve"
 
 /* QNET Channels */
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
+#define TCC_INPUT_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_INPUT_CHANNEL  // hostname using full path, change myname to the name used for server
 #define I1_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" I1_HOSTNAME "/dev/name/local/" I1_CRITICAL_CHANNEL  // hostname using full path, change myname to the name used for server
 #define RCC_CRITICAL_CHANNEL_ATTACH_POINT  "/net/" RCC_HOSTNAME "/dev/name/local/" RCC_CRITICAL_CHANNEL
 
@@ -164,4 +166,29 @@ typedef struct {
 	} data;
 } msg_reply_t;
 
+enum FUNC {INVALID_FUNC, SET_FUNC, GET_FUNC};
+enum OPTION {INVALID_OPTION, STATE_OPTION, MODE_OPTION, FAULT_OPTION, RESET_OPTION};
+enum NODE {INVALID_NODE, ALL_NODES, I1_NODE, I2_NODE, X1_NODE};
+enum MODE {INVALID_MODE, PEAK_MODE, OFF_PEAK_MODE};
 
+typedef struct {
+	struct _pulse hdr;
+	enum FUNC func;
+	enum OPTION option;
+	enum NODE node;
+	enum MODE mode;
+} tool_msg_t;
+
+typedef struct {
+	struct _pulse hdr;
+	union{
+		char buf[BUF_SIZE]; // Message we send back to clients to tell them the messages was processed correctly.
+		struct {
+			traffic_state_t i1;
+			traffic_state_t i2;
+			rail_state_t x1;
+			traffic_mode_t mode;
+		} state;
+	}data;
+
+} tool_reply_t;
