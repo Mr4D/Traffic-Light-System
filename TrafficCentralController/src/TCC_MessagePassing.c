@@ -69,16 +69,50 @@ void *critical_server_channel_thread(void *data) {
 							NULL,
 							PTHREAD_RWLOCK_INITIALIZER
 						};
-//						send_message_thread_data_t i2_send = {
-//							I2_CRITICAL_CHANNEL_ATTACH_POINT,
-//							&msg_send,
-//							NULL,
-//							PTHREAD_RWLOCK_INITIALIZER
-//						 };
+						send_message_thread_data_t i2_send = {
+							I2_CRITICAL_CHANNEL_ATTACH_POINT,
+							&msg_send,
+							NULL,
+							PTHREAD_RWLOCK_INITIALIZER
+						 };
 
-						pthread_create(NULL, NULL, &sendMessage, &i1_send);
-						//pthread_create(NULL, NULL, &sendMessage, &i2_send);
+						// Thread definitions
+						pthread_t i1_tx_rail_data;
+						pthread_t i2_tx_rail_data;
 
+						// Thread settings
+						pthread_attr_t i_tx_rail_attr;
+						struct sched_param i_tx_rail_param;
+						setThreadSettings(&i_tx_rail_attr, &i_tx_rail_param, 63, false);
+
+						pthread_create(&i1_tx_rail_data, &i_tx_rail_attr, &sendMessage, &i1_send);
+						pthread_create(&i2_tx_rail_data, &i_tx_rail_attr, &sendMessage, &i2_send);
+
+						// Set the time limit
+						struct timespec send_time_limit;
+						clock_gettime( CLOCK_REALTIME , &send_time_limit );
+						send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+						if (pthread_timedjoin(i1_tx_rail_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+							// Didn't get a reply in time, cancel the thread
+							printf("Didn't send or reply to Intersection within time\n");
+
+							if (pthread_cancel(i1_tx_rail_data) == EOK) {
+								printf("Thread cancelled\n");
+							}
+						}
+
+						if (pthread_timedjoin(i2_tx_rail_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+							// Didn't get a reply in time, cancel the thread
+							printf("Didn't send or reply to Intersection within time\n");
+
+							if (pthread_cancel(i2_tx_rail_data) == EOK) {
+								printf("Thread cancelled\n");
+							}
+						}
+						
 						sprintf(replymsg.data.buf, "OK");
 					}
 				}
@@ -99,7 +133,7 @@ void *critical_server_channel_thread(void *data) {
 	ChannelDestroy(attach->chid);
 }
 
-void * getStateData( void * data){
+void getStateData( void * data){
 
 	get_state_thread_data_t * thread_data = (get_state_thread_data_t*)data;
 	traffic_state_data_t * i1_state_data = thread_data->i1_state_data;
@@ -117,31 +151,70 @@ void * getStateData( void * data){
 		&i1_reply,
 		PTHREAD_RWLOCK_INITIALIZER
 	};
-//	send_message_thread_data_t i2_send = {
-//		I2_CRITICAL_CHANNEL_ATTACH_POINT,
-//		&msg_send,
-//		&i1_reply,
-//		PTHREAD_RWLOCK_INITIALIZER
-//	 };
+	send_message_thread_data_t i2_send = {
+		I2_CRITICAL_CHANNEL_ATTACH_POINT,
+		&msg_send,
+		&i1_reply,
+		PTHREAD_RWLOCK_INITIALIZER
+	 };
 
+	// Thread definitions
 	pthread_t i1_state_request;
-	//pthread_t i2_state_request;
-	pthread_create(&i1_state_request, NULL, &sendMessage, &i1_send);
-	//pthread_create(&i2_state_request, NULL, &sendMessage, &i2_send);
+	pthread_t i2_state_request;
 
+	// Thread settings
+	pthread_attr_t i_state_request_attr;
+	struct sched_param i_state_request_param;
+	setThreadSettings(&i_state_request_attr, &i_state_request_param, 63, false);
+	
 
-	pthread_join(i1_state_request, NULL);
-	//pthread_join(i2_state_request, NULL);
+	// Spawn thread to send msg
+	pthread_create(&i1_state_request, &i_state_request_attr, &sendMessage, &i1_send);
+	pthread_create(&i2_state_request, &i_state_request_attr, &sendMessage, &i2_send);
 
+	// Set the time limit
+	struct timespec send_time_limit;
+	clock_gettime( CLOCK_REALTIME , &send_time_limit );
+	send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+	if (pthread_timedjoin(i1_state_request, NULL, &send_time_limit) == ETIMEDOUT) {
+
+		// Didn't get a reply in time, cancel the thread
+
+		printf("Didn't send or reply to Intersection within time\n");
+
+		if (pthread_cancel(i1_state_request) == EOK) {
+			printf("Thread cancelled\n");
+		}
+
+	} else {
+
+		// Joined in time, all good
 
 		printf("reply state: %d\n", i1_reply.data.traffic_state);
-
-
 		pthread_mutex_lock(&i1_state_data->mutex_state);
 			i1_state_data->current_state = i1_reply.data.traffic_state;
 		pthread_mutex_unlock(&i1_state_data->mutex_state);
 
-//	pthread_mutex_lock(&i2_state_data->mutex_state);
-//		i2_state_data->current_state = i2_reply.data.traffic_state;
-//	pthread_mutex_unlock(&i2_state_data->mutex_state);
+	}
+
+	if (pthread_timedjoin(i2_state_request, NULL, &send_time_limit) == ETIMEDOUT) {
+
+		// Didn't get a reply in time, cancel the thread
+		printf("Didn't send or reply to Intersection within time\n");
+
+		if (pthread_cancel(i2_state_request) == EOK) {
+			printf("Thread cancelled\n");
+		}
+
+	} else {
+
+		// Joined in time, all good
+
+		printf("reply state: %d\n", i2_reply.data.traffic_state);
+
+		pthread_mutex_lock(&i2_state_data->mutex_state);
+			i2_state_data->current_state = i2_reply.data.traffic_state;
+		pthread_mutex_unlock(&i2_state_data->mutex_state);
+	}
 }
