@@ -143,7 +143,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i1_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 1 within time\n");
 
 								if (pthread_cancel(i1_tx_fault_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -153,7 +153,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i2_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 2 within time\n");
 
 								if (pthread_cancel(i2_tx_fault_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -187,7 +187,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i1_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 1 within time\n");
 
 								if (pthread_cancel(i1_tx_fault_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -221,7 +221,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i2_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 2 within time\n");
 
 								if (pthread_cancel(i2_tx_fault_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -272,7 +272,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i1_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 1 within time\n");
 
 								if (pthread_cancel(i1_tx_rst_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -282,7 +282,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i2_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 2 within time\n");
 
 								if (pthread_cancel(i2_tx_rst_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -319,7 +319,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i1_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 1 within time\n");
 
 								if (pthread_cancel(i1_tx_rst_data) == EOK) {
 									printf("Thread cancelled\n");
@@ -358,7 +358,7 @@ void * inputThread(void * data) {
 							if (pthread_timedjoin(i2_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 								// Didn't get a reply in time, cancel the thread
-								printf("Didn't send or reply to Intersection within time\n");
+								printf("Didn't send or reply to Intersection 2 within time\n");
 
 								if (pthread_cancel(i2_tx_rst_data) == EOK) {
 									printf("Thread cancelled\n");

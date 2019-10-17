@@ -14,7 +14,7 @@
 
 #define BUF_SIZE 100
 
-#define INTERSECTION_COUNT 2
+#define INTERSECTION_COUNT 5
 
 #define I1_HOSTNAME "RMIT_BBB_v5_02"
 #define I2_HOSTNAME "RMIT_BBB_v5_06"
@@ -29,8 +29,6 @@
 #define RC_CRITICAL_CHANNEL "grp11_sig_recieve"
 #define RCC_CRITICAL_CHANNEL "grp11_rail_state_recieve"
 
-
-
 /* QNET Channels */
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL // hostname using full path, change myname to the name used for server
 #define TCC_INPUT_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_INPUT_CHANNEL  // hostname using full path, change myname to the name used for server
@@ -38,7 +36,6 @@
 #define I2_CRITICAL_CHANNEL_ATTACH_POINT "/net/" I2_HOSTNAME "/dev/name/local/" I2_CRITICAL_CHANNEL	// hostname using full path, change myname to the name used for server
 #define RCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RCC_HOSTNAME "/dev/name/local/" RCC_CRITICAL_CHANNEL
 #define RC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RAIL_HOSTNAME "/dev/name/local/" RC_CRITICAL_CHANNEL
-
 
 /* Client IDs */
 #define I1_CLIENT_ID 1
