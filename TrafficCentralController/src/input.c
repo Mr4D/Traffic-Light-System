@@ -108,7 +108,7 @@ void * inputThread(void * data) {
 						msg_send.data.fault = true;
 
 
-						if(msg.node == ALL_NODES){
+						if(msg.node == ALL_NODES) {
 							printf("\tALL_NODES\n");
 							send_message_thread_data_t i1_send = {
 									I1_CRITICAL_CHANNEL_ATTACH_POINT,
@@ -116,15 +116,49 @@ void * inputThread(void * data) {
 									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
-//							send_message_thread_data_t i2_send = {
-//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
-//									&msg_send,
-//									NULL,
-//									PTHREAD_RWLOCK_INITIALIZER
-//							};
+							send_message_thread_data_t i2_send = {
+									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									NULL,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
 
-							pthread_create(NULL, NULL, &sendMessage, &i1_send);
-							//pthread_create(&send, NULL, &sendMessage, &i2_send);
+							// Thread definitions
+							pthread_t i1_tx_fault_data;
+							pthread_t i2_tx_fault_data;
+
+							// Thread settings
+							pthread_attr_t i_tx_fault_attr;
+							struct sched_param i_tx_fault_param;
+							setThreadSettings(&i_tx_fault_attr, &i_tx_fault_param, 63, false);
+
+							pthread_create(&i1_tx_fault_data, &i_tx_fault_attr, &sendMessage, &i1_send);
+							pthread_create(&i2_tx_fault_data, &i_tx_fault_attr, &sendMessage, &i2_send);
+
+							// Set the time limit
+							struct timespec send_time_limit;
+							clock_gettime( CLOCK_REALTIME , &send_time_limit );
+							send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+							if (pthread_timedjoin(i1_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i1_tx_fault_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
+
+							if (pthread_timedjoin(i2_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i2_tx_fault_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
 
 						}
 						else if(msg.node == I1_NODE) {
@@ -135,17 +169,64 @@ void * inputThread(void * data) {
 									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
-							pthread_create(NULL, NULL, &sendMessage, &i1_send);
+							// Thread definitions
+							pthread_t i1_tx_fault_data;
+
+							// Thread settings
+							pthread_attr_t i_tx_fault_attr;
+							struct sched_param i_tx_fault_param;
+							setThreadSettings(&i_tx_fault_attr, &i_tx_fault_param, 63, false);
+
+							pthread_create(&i1_tx_fault_data, &i_tx_fault_attr, &sendMessage, &i1_send);
+
+							// Set the time limit
+							struct timespec send_time_limit;
+							clock_gettime( CLOCK_REALTIME , &send_time_limit );
+							send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+							if (pthread_timedjoin(i1_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i1_tx_fault_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
+
 						}
 						else if(msg.node == I2_NODE) {
 							printf("\tI2_NODE\n");
-//							send_message_thread_data_t i2_send = {
-//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
-//									&msg_send,
-//									NULL
-//									PTHREAD_RWLOCK_INITIALIZER
-//							};
-//							pthread_create(&send, NULL, &sendMessage, &i2_send);
+							send_message_thread_data_t i2_send = {
+									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									NULL,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
+
+							pthread_t i2_tx_fault_data;
+
+							// Thread settings
+							pthread_attr_t i_tx_fault_attr;
+							struct sched_param i_tx_fault_param;
+							setThreadSettings(&i_tx_fault_attr, &i_tx_fault_param, 63, false);
+
+							pthread_create(&i2_tx_fault_data, &i_tx_fault_attr, &sendMessage, &i2_send);
+
+							// Set the time limit
+							struct timespec send_time_limit;
+							clock_gettime( CLOCK_REALTIME , &send_time_limit );
+							send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+							if (pthread_timedjoin(i2_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i2_tx_fault_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
 						}
 					}
 
@@ -164,14 +245,51 @@ void * inputThread(void * data) {
 									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
-//							send_message_thread_data_t i2_send = {
-//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
-//									&msg_send,
-//									PTHREAD_RWLOCK_INITIALIZER
-//							};
+							send_message_thread_data_t i2_send = {
+									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									NULL,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
 
-							pthread_create(NULL, NULL, &sendMessage, &i1_send);
-							//pthread_create(&send, NULL, &sendMessage, &i2_send);
+							// Thread definitions
+							pthread_t i1_tx_rst_data;
+							pthread_t i2_tx_rst_data;
+
+							// Thread settings
+							pthread_attr_t i_tx_rst_attr;
+							struct sched_param i_tx_rst_param;
+							setThreadSettings(&i_tx_rst_attr, &i_tx_rst_param, 63, false);
+
+							pthread_create(&i1_tx_rst_data, &i_tx_rst_attr, &sendMessage, &i1_send);
+							pthread_create(&i2_tx_rst_data, &i_tx_rst_attr, &sendMessage, &i2_send);
+
+							// Set the time limit
+							struct timespec send_time_limit;
+							clock_gettime( CLOCK_REALTIME , &send_time_limit );
+							send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+							if (pthread_timedjoin(i1_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i1_tx_rst_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
+
+							if (pthread_timedjoin(i2_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i2_tx_rst_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
+
+							
 						}
 						else if(msg.node == I1_NODE) {
 							printf("\tI1_NODE\n");
@@ -181,15 +299,71 @@ void * inputThread(void * data) {
 									NULL,
 									PTHREAD_RWLOCK_INITIALIZER
 							};
-							pthread_create(NULL, NULL, &sendMessage, &i1_send);
+
+
+							// Thread definitions
+							pthread_t i1_tx_rst_data;
+
+							// Thread settings
+							pthread_attr_t i_tx_rst_attr;
+							struct sched_param i_tx_rst_param;
+							setThreadSettings(&i_tx_rst_attr, &i_tx_rst_param, 63, false);
+
+							pthread_create(&i1_tx_rst_data, &i_tx_rst_attr, &sendMessage, &i1_send);
+
+							// Set the time limit
+							struct timespec send_time_limit;
+							clock_gettime( CLOCK_REALTIME , &send_time_limit );
+							send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+							if (pthread_timedjoin(i1_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i1_tx_rst_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
+
+
+
+
 						}
 						else if(msg.node == I2_NODE) {
 							printf("\tI2_NODE\n");
-//							send_message_thread_data_t i2_send = {
-//									I2_CRITICAL_CHANNEL_ATTACH_POINT,
-//									&msg_send,
-//									PTHREAD_RWLOCK_INITIALIZER
-//							};
+							send_message_thread_data_t i2_send = {
+									I2_CRITICAL_CHANNEL_ATTACH_POINT,
+									&msg_send,
+									NULL,
+									PTHREAD_RWLOCK_INITIALIZER
+							};
+
+							// Thread definitions
+
+							pthread_t i2_tx_rst_data;
+
+							// Thread settings
+							pthread_attr_t i_tx_rst_attr;
+							struct sched_param i_tx_rst_param;
+							setThreadSettings(&i_tx_rst_attr, &i_tx_rst_param, 63, false);
+
+							pthread_create(&i2_tx_rst_data, &i_tx_rst_attr, &sendMessage, &i2_send);
+
+							// Set the time limit
+							struct timespec send_time_limit;
+							clock_gettime( CLOCK_REALTIME , &send_time_limit );
+							send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+							if (pthread_timedjoin(i2_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+								// Didn't get a reply in time, cancel the thread
+								printf("Didn't send or reply to Intersection within time\n");
+
+								if (pthread_cancel(i2_tx_rst_data) == EOK) {
+									printf("Thread cancelled\n");
+								}
+							}
 						}
 					}
 

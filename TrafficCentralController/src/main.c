@@ -15,7 +15,8 @@ void initData(traffic_state_data_t *i1_state_data,
 			  critical_server_thread_data_t *critical_server_thread_data,
 			  traffic_mode_data_t * traffic_mode_data,
 			  msg_data_t *msg_send,
-			  send_message_thread_data_t *i1_send) {
+			  send_message_thread_data_t *i1_send,
+			  get_state_thread_data_t *request_i_state_data) {
 
 	initTrafficStateData(i1_state_data);
 	initTrafficStateData(i1_state_data);
@@ -39,6 +40,9 @@ void initData(traffic_state_data_t *i1_state_data,
 
 	i1_send->attach_point = I1_CRITICAL_CHANNEL_ATTACH_POINT;
 	i1_send->msg = msg_send;
+
+	request_i_state_data->i1_state_data = i1_state_data;
+	request_i_state_data->i2_state_data = i2_state_data;
 }
 
 int main(void) {
@@ -51,6 +55,7 @@ int main(void) {
 	output_thread_data_t output_thread_data;
 	critical_server_thread_data_t critical_server_thread_data;
 	traffic_mode_data_t traffic_mode_data;
+	get_state_thread_data_t request_i_state_data;
 
 	msg_data_t msg_send;
 	send_message_thread_data_t i1_send;
@@ -64,7 +69,8 @@ int main(void) {
 			 &critical_server_thread_data,
 			 &traffic_mode_data,
 			 &msg_send,
-			 &i1_send);
+			 &i1_send,
+			 &request_i_state_data);
 	
 	// Thread definitions
 	pthread_t th_input; // define
@@ -84,18 +90,15 @@ int main(void) {
 	struct sched_param th_send_param;
 
 	// Set thread attributes
-	setThreadSettings(&th_output_attr, &th_output_param, TCC_OUTPUT_THREAD_PRIORITY, false);
 	setThreadSettings(&th_critical_server_channel_attr, &th_critical_server_channel_param, TCC_CRIT_SERVER_CHANNEL_THREAD_PRIORITY, false);
 	setThreadSettings(&th_send_attr, &th_send_param, TCC_SEND_THREAD_PRIORITY, false);
 
 	// Spawn threads
 	pthread_create(&th_input, NULL, &inputThread, &input_thread_data);
 	pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critical_server_thread_data);
-	//pthread_create(&th_output, &th_output_attr, &t_output, &output_thread_data);
 
-
+	pthread_join(th_input, NULL);
 	pthread_join(th_critical_server_channel, NULL);
-	pthread_join(th_output, NULL);
 	
 	printf("Main terminating\n");
 	return EXIT_SUCCESS;

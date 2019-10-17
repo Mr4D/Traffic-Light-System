@@ -16,14 +16,16 @@
 
 #define INTERSECTION_COUNT 2
 
-#define I1_HOSTNAME "VM_x86_Target01"  //"RMIT_BBB_v5_02"
-#define TCC_HOSTNAME "VM_x86_Target02" //"RMIT_BBB_v5_03" //"RMIT_BBB_v5_03" "VM_x86_Target01"
-#define RCC_HOSTNAME "RMIT_BBB_v5_06"
-#define RAIL_HOSTNAME "RMIT_BBB_v5_07"
+#define I1_HOSTNAME "RMIT_BBB_v5_02"
+#define I2_HOSTNAME "RMIT_BBB_v5_06"
+#define TCC_HOSTNAME "cycloneV_02"
+#define RCC_HOSTNAME "cycloneV_user"
+#define RAIL_HOSTNAME "RMIT_BBB_v5_03"
 
 #define TCC_CRITICAL_CHANNEL "grp11_state_recieve"
 #define TCC_INPUT_CHANNEL "grp11_input_recieve"
 #define I1_CRITICAL_CHANNEL "grp11_rail_state_recieve"
+#define I2_CRITICAL_CHANNEL "grp11_rail_state_recieve"
 #define RC_CRITICAL_CHANNEL "grp11_sig_recieve"
 #define RCC_CRITICAL_CHANNEL "grp11_rail_state_recieve"
 
@@ -33,6 +35,7 @@
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL // hostname using full path, change myname to the name used for server
 #define TCC_INPUT_CHANNEL_ATTACH_POINT  "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_INPUT_CHANNEL  // hostname using full path, change myname to the name used for server
 #define I1_CRITICAL_CHANNEL_ATTACH_POINT "/net/" I1_HOSTNAME "/dev/name/local/" I1_CRITICAL_CHANNEL	// hostname using full path, change myname to the name used for server
+#define I2_CRITICAL_CHANNEL_ATTACH_POINT "/net/" I2_HOSTNAME "/dev/name/local/" I2_CRITICAL_CHANNEL	// hostname using full path, change myname to the name used for server
 #define RCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RCC_HOSTNAME "/dev/name/local/" RCC_CRITICAL_CHANNEL
 #define RC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RAIL_HOSTNAME "/dev/name/local/" RC_CRITICAL_CHANNEL
 
@@ -53,6 +56,8 @@
 #define REPLY_MSG _IO_MAX + 6
 #define RAIL_RAISE _IO_MAX + 7
 #define RAIL_LOWER _IO_MAX + 8
+
+#define MSG_SEND_TIMEOUT 2
 
 /* Thread priorities */
 #define I_CRIT_SEVER_CHANNEL_THREAD_PRIORITY 61
