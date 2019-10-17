@@ -22,7 +22,6 @@ void * timerThread (void * data){
 		if (change_state_msg.code == STATE_TIMER_EXPIRE_PULSE) {
 			writeTrafficLogFile(LOG_FILE_NAME, "(I2) - STATE_TIMER_EXPIRE_PULSE\n");
 
-			printf("(I2) - STATE_TIMER_EXPIRE_PULSE\n");
 
 			pthread_sleepon_lock();
 				change_state_flags->state_timer_timeout = true;
@@ -31,7 +30,6 @@ void * timerThread (void * data){
 		}
 		else if (change_state_msg.code == PED_TIMER_EXPIRE_PULSE) {
 			writeTrafficLogFile(LOG_FILE_NAME, "(I2) - PED_TIMER_EXPIRE_PULSE\n");
-			printf("(I2) - PED_TIMER_EXPIRE_PULSE\n");
 			pthread_sleepon_lock();
 				change_state_flags->ped_timer_timeout = true;
 				pthread_sleepon_signal(change_state_flags);
@@ -39,7 +37,6 @@ void * timerThread (void * data){
 		}
 		else if (change_state_msg.code == PED_SENSE_TIMEOUT_EXPIRE_PULSE) {
 			writeTrafficLogFile(LOG_FILE_NAME, "(I2) - PED_SENSE_TIMEOUT_EXPIRE_PULSE\n");
-			printf("(I2) - PED_SENSE_TIMEOUT_EXPIRE_PULSE\n");
 			pthread_sleepon_lock();
 				change_state_flags->ped_sense_timer_timeout = true;
 				pthread_sleepon_signal(change_state_flags);
@@ -140,6 +137,8 @@ void * trafficStateMachine(void *data) {
 		stateToString(current_state, log_message);
 		printf(log_message);
 		printf("\n");
+
+		printf("mode: %d\n", mode);
 		if (LOG) {	// Print state info
 
 			strcat(log_message, "\n");
@@ -161,11 +160,16 @@ void * trafficStateMachine(void *data) {
 				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
+			pthread_rwlock_rdlock( &mode_data->rwlock );
+				mode = mode_data->mode;
+			pthread_rwlock_unlock( &mode_data->rwlock );
+
 			if (mode == PEAK) {
+				printf("decide change peak\n");
 				change_state = decideChangeStatePeak(&state_flags, current_state, &input_queue);
 			}
 			else if (mode == OFF_PEAK) {
-
+				printf("decide change offpeak\n");
 				change_state = decideChangeStateOffPeak(&state_flags, current_state, &input_queue);
 			}
 		}
@@ -177,27 +181,12 @@ void * trafficStateMachine(void *data) {
 			clearInputOffPeak(input_data, current_state);
 		}
 
-		printf("\n\nbefore clear\n");
-		printf("(I2) - state: %d\n", state_flags.state_timer_timeout);
-		printf("(I2) -ped: %d\n", state_flags.ped_timer_timeout);
-		printf("(I2) -ped_sen: %d\n", state_flags.ped_sense_timer_timeout);
-		printf("(I2) -input: %d\n", state_flags.input);
-		printf("(I2) -fault: %d\n", state_flags.fault);
-		printf("(I2) -rest: %d\n", state_flags.reset);
-
 		clearFlags(change_state_flags, input_data);
 
-		printf("\nafter clear\n");
 		pthread_sleepon_lock();
 			memcpy(&state_flags, change_state_flags, sizeof(state_flags));
 		pthread_sleepon_unlock();
 
-		printf("(I2) - state: %d\n", state_flags.state_timer_timeout);
-		printf("(I2) - ped: %d\n", state_flags.ped_timer_timeout);
-		printf("(I2) -ped_sen: %d\n", state_flags.ped_sense_timer_timeout);
-		printf("(I2) -input: %d\n", state_flags.input);
-		printf("(I2) -fault: %d\n", state_flags.fault);
-		printf("(I2) -rest: %d\n", state_flags.reset);
 
 
 		if(state_flags.reset && (current_state == ALL_RED || current_state == FAULT || current_state == INITIAL)){
@@ -289,7 +278,6 @@ void initiliseTimer(int chid) {
 
 	if (ped_sense_timeout_timer_event.sigev_coid != -1) {
 
-		printf("(I2) - set ped timeout timer\n");
 		ped_sense_timeout_timer_event.sigev_notify = SIGEV_PULSE;
 
 		struct sched_param th_param;

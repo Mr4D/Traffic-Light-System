@@ -39,6 +39,7 @@ void * critical_server_channel_thread(void * data) {
 	bool reset = false;
 	while (!reset) {
 	// Do your MsgReceive's here now with the chid
+		printf("wait for message\n");
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 	  printf("message received (I1)\n");
 
@@ -71,7 +72,6 @@ void * critical_server_channel_thread(void * data) {
 			   // put your message handling code here and assemble a reply message
 
 			  if(LOG){
-				  sprintf(log_message, "(I1) - Server received data packet with value of '%d' from client (ID:%d), ", msg.data.rail_state, msg.client_id);
 				  writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			  }
 			   fflush(stdout);
@@ -94,9 +94,15 @@ void * critical_server_channel_thread(void * data) {
 			   }
 			   else if(msg.hdr.type == MODE_MSG){
 				   printf("MODE_MSG\n");
+				   printf("mode msg: %d\n", msg.data.mode);
 				   pthread_rwlock_wrlock(&traffic_mode_data->rwlock);
 					   traffic_mode_data->mode = msg.data.mode;
 				   pthread_rwlock_unlock(&traffic_mode_data->rwlock);
+
+				   pthread_sleepon_lock();
+						change_state_flags->state_timer_timeout = true;
+						pthread_sleepon_signal(change_state_flags);
+					pthread_sleepon_unlock();
 
 				   sprintf(replymsg.data.buf,"OK");
 			   }
@@ -134,7 +140,7 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(log_message, "\n(I1)\t-----> replying with: '%d'\n",replymsg.data.traffic_state);
 				   writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			   }
-//			   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
+			   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
 		  }
 
 	  }

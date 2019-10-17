@@ -17,5 +17,5 @@
 #include <traffic_types.h>
 
 
-void getStateData(void *data);
+void * getStateData(void *data);
 void *critical_server_channel_thread(void *data);

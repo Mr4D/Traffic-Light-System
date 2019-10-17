@@ -16,9 +16,9 @@
 
 #define INTERSECTION_COUNT 2
 
-#define I1_HOSTNAME "RMIT_BBB_v5_02"
-#define I2_HOSTNAME "RMIT_BBB_v5_06"
-#define TCC_HOSTNAME "cycloneV_02"
+#define I1_HOSTNAME "VM_x86_Target01"
+#define I2_HOSTNAME "VM_x86_Target02"
+#define TCC_HOSTNAME "VM_x86_Target01"
 #define RCC_HOSTNAME "cycloneV_user"
 #define RAIL_HOSTNAME "RMIT_BBB_v5_03"
 
@@ -54,10 +54,8 @@
 #define FAULT_MSG _IO_MAX + 4
 #define RESET_MSG _IO_MAX + 5
 #define REPLY_MSG _IO_MAX + 6
-#define RAIL_RAISE _IO_MAX + 7
-#define RAIL_LOWER _IO_MAX + 8
 
-#define MSG_SEND_TIMEOUT 2
+#define MSG_SEND_TIMEOUT 5
 
 /* Thread priorities */
 #define I_CRIT_SEVER_CHANNEL_THREAD_PRIORITY 61
@@ -196,16 +194,16 @@ typedef struct {
 } msg_reply_t;
 
 enum FUNC {INVALID_FUNC, SET_FUNC, GET_FUNC};
-enum OPTION {INVALID_OPTION, STATE_OPTION, MODE_OPTION, FAULT_OPTION, RESET_OPTION};
+enum OPTION {INVALID_OPTION, STATE_OPTION, MODE_OPTION, RAIL_MSG_OPTION, FAULT_OPTION, RESET_OPTION};
 enum NODE {INVALID_NODE, ALL_NODES, I1_NODE, I2_NODE, X1_NODE};
-enum MODE {INVALID_MODE, PEAK_MODE, OFF_PEAK_MODE};
 
 typedef struct {
 	struct _pulse hdr;
 	enum FUNC func;
 	enum OPTION option;
 	enum NODE node;
-	enum MODE mode;
+	traffic_mode_t mode;
+	rail_state_t rail_state;
 } tool_msg_t;
 
 typedef struct {

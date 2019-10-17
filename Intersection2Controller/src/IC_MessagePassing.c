@@ -40,7 +40,6 @@ void * critical_server_channel_thread(void * data) {
 	while (!reset) {
 	// Do your MsgReceive's here now with the chid
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
-	  printf(" (I2) - Message received \n");
 
 	  if (rcvid == -1)  // Error condition, exit
 	  {
@@ -94,9 +93,15 @@ void * critical_server_channel_thread(void * data) {
 			   }
 			   else if(msg.hdr.type == MODE_MSG){
 				   printf("MODE_MSG\n");
+				   printf("mode msg: %d\n", msg.data.mode);
 				   pthread_rwlock_wrlock(&traffic_mode_data->rwlock);
 					   traffic_mode_data->mode = msg.data.mode;
 				   pthread_rwlock_unlock(&traffic_mode_data->rwlock);
+
+				   pthread_sleepon_lock();
+						change_state_flags->state_timer_timeout = true;
+						pthread_sleepon_signal(change_state_flags);
+					pthread_sleepon_unlock();
 
 				   sprintf(replymsg.data.buf,"OK");
 			   }

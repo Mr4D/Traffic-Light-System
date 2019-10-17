@@ -1,7 +1,7 @@
 #include "traffic_library.h"
 
 void * sendMessage(void *data) {
-
+	printf("sendmsg\n");
 	send_message_thread_data_t *thread_data = (send_message_thread_data_t *)data;
 
 	msg_data_t msg;
@@ -19,8 +19,9 @@ void * sendMessage(void *data) {
 	if ((server_coid = name_open(thread_data->attach_point, 0)) == -1) {
 		printf("\n    ERROR, could not connect to server!\n\n");
 	}
-
-	printf("Connection established to: %s\n", thread_data->attach_point);
+	else {
+		printf("Connection established to: %s\n", thread_data->attach_point);
+	}
 	fflush(stdout);
 
 	if (MsgSend(server_coid, &msg, sizeof(msg), &reply, sizeof(reply)) == -1) {
@@ -70,7 +71,7 @@ void initRailStateData(rail_state_data_t *rail_state_data) {
 }
 
 void initModeData(traffic_mode_data_t * traffic_mode_data){
-	traffic_mode_data->mode;
+	traffic_mode_data->mode = PEAK;
 	pthread_rwlock_init(&traffic_mode_data->rwlock, NULL);
 }
 
@@ -94,6 +95,7 @@ name_attach_t *createChannel(const char *attach_point) {
 
 	// Create a local name (/dev/name/...)
 	if ((attach = name_attach(NULL, attach_point, 0)) == NULL) {
+		printf("failed %s", attach_point);
 		sprintf(log_message, "Failed to name_attach on ATTACH_POINT: %s \n", attach_point);
 		writeTrafficLogFile(LOG_FILE_NAME, log_message);
 	} else {
@@ -149,7 +151,7 @@ void handleIOConnect(msg_data_t *msg, int rcvid) {
 	if (msg->hdr.type == _IO_CONNECT) {
 		MsgReply(rcvid, EOK, NULL, 0);
 		if (LOG) {
-			writeTrafficLogFile(LOG_FILE_NAME, "\n gns service is running....");
+			printf("\n gns service is running....");
 		}
 	}
 
@@ -158,7 +160,7 @@ void handleIOConnect(msg_data_t *msg, int rcvid) {
 		MsgError(rcvid, ENOSYS);
 
 		if (LOG) {
-			writeTrafficLogFile(LOG_FILE_NAME, "\n Server received and IO message and rejected it....");
+			printf("\n Server received and IO message and rejected it....");
 		}
 	}
 }

@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "Input.h"
-#include "Output.h"
 #include "TCC_MessagePassing.h"
 #include "TrafficCentralController.h"
 
@@ -11,7 +10,6 @@ void initData(traffic_state_data_t *i1_state_data,
 			  rail_state_data_t *x1_state_data,
 			  tcc_state_data_t *tcc_state_data,
 			  input_thread_data_t * input_thread_data,
-			  output_thread_data_t *output_thread_data,
 			  critical_server_thread_data_t *critical_server_thread_data,
 			  traffic_mode_data_t * traffic_mode_data,
 			  msg_data_t *msg_send,
@@ -29,8 +27,6 @@ void initData(traffic_state_data_t *i1_state_data,
 	tcc_state_data->traffic_mode_data = traffic_mode_data;
 
 	input_thread_data->tcc_state_data = tcc_state_data;
-
-	output_thread_data->tcc_state_data = tcc_state_data;
 
 	critical_server_thread_data->x1_state_data = x1_state_data;
 
@@ -52,7 +48,6 @@ int main(void) {
 	rail_state_data_t x1_state_data;
 	tcc_state_data_t tcc_state_data;
 	input_thread_data_t input_thread_data;
-	output_thread_data_t output_thread_data;
 	critical_server_thread_data_t critical_server_thread_data;
 	traffic_mode_data_t traffic_mode_data;
 	get_state_thread_data_t request_i_state_data;
@@ -65,7 +60,6 @@ int main(void) {
 			 &x1_state_data,
 			 &tcc_state_data,
 			 &input_thread_data,
-			 &output_thread_data,
 			 &critical_server_thread_data,
 			 &traffic_mode_data,
 			 &msg_send,
@@ -74,18 +68,15 @@ int main(void) {
 	
 	// Thread definitions
 	pthread_t th_input; // define
-	pthread_t th_output;
 	pthread_t th_critical_server_channel;
 
 	// Thread attributes
 	pthread_attr_t th_input_attr; // define
-	pthread_attr_t th_output_attr;
 	pthread_attr_t th_critical_server_channel_attr;
 	pthread_attr_t th_send_attr;
 
 	// Thread schedule parameters
 	struct sched_param th_input_param; // define
-	struct sched_param th_output_param;
 	struct sched_param th_critical_server_channel_param;
 	struct sched_param th_send_param;
 

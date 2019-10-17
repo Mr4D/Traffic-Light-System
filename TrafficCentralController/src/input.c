@@ -31,9 +31,10 @@ void * inputThread(void * data) {
 
 	living = 1;
 	while (living) {
+		printf("Waiting Input\n");
 		// Do your MsgReceive's here now with the chid
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
-
+		printf("\nMsgReceive\n");
 		if (rcvid == -1) { // Error condition, exit
 
 			printf("\nFailed to MsgReceive\n");
@@ -89,19 +90,136 @@ void * inputThread(void * data) {
 					pthread_mutex_unlock(&i2_state_data->mutex_state);
 
 					pthread_rwlock_rdlock(&traffic_mode_data->rwlock);
-						replymsg.data.state.mode = traffic_mode_data->mode = msg.mode;
+						replymsg.data.state.mode = traffic_mode_data->mode;
+						printf("mode:  %d\n", traffic_mode_data->mode);
 					pthread_rwlock_unlock(&traffic_mode_data->rwlock);
+					printf("reply mode:  %d\n", replymsg.data.state.mode);
 				}
 				else if(msg.func == SET_FUNC){
 					printf("SET_FUNC\n");
 					if(msg.option == MODE_OPTION){
 						printf("MODE_OPTION\n");
+
 						pthread_rwlock_rdlock(&traffic_mode_data->rwlock);
-						traffic_mode_data->mode = msg.mode;
+							traffic_mode_data->mode = msg.mode;
 						pthread_rwlock_unlock(&traffic_mode_data->rwlock);
+						printf("\treceive mode: %d\n", msg.mode);
+
+						msg_send.hdr.type = MODE_MSG;
+						msg_send.data.mode = msg.mode;
+
+						printf("\tMODE MSG\n");
+						send_message_thread_data_t i1_send = {
+								I1_CRITICAL_CHANNEL_ATTACH_POINT,
+								&msg_send,
+								NULL,
+								PTHREAD_RWLOCK_INITIALIZER
+						};
+						send_message_thread_data_t i2_send = {
+								I2_CRITICAL_CHANNEL_ATTACH_POINT,
+								&msg_send,
+								NULL,
+								PTHREAD_RWLOCK_INITIALIZER
+						};
+
+						// Thread definitions
+						pthread_t i1_tx_rst_data;
+						pthread_t i2_tx_rst_data;
+
+						// Thread settings
+						pthread_attr_t i_tx_rst_attr;
+						struct sched_param i_tx_rst_param;
+						setThreadSettings(&i_tx_rst_attr, &i_tx_rst_param, 63, false);
+
+						pthread_create(&i1_tx_rst_data, &i_tx_rst_attr, &sendMessage, &i1_send);
+						pthread_create(&i2_tx_rst_data, &i_tx_rst_attr, &sendMessage, &i2_send);
+
+						// Set the time limit
+						struct timespec send_time_limit;
+						clock_gettime( CLOCK_REALTIME , &send_time_limit );
+						send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+						if (pthread_timedjoin(i1_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+							// Didn't get a reply in time, cancel the thread
+							printf("Didn't send or reply to Intersection within time\n");
+
+							if (pthread_cancel(i1_tx_rst_data) == EOK) {
+								printf("Thread cancelled\n");
+							}
+						}
+
+						if (pthread_timedjoin(i2_tx_rst_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+							// Didn't get a reply in time, cancel the thread
+							printf("Didn't send or reply to Intersection within time\n");
+
+							if (pthread_cancel(i2_tx_rst_data) == EOK) {
+								printf("Thread cancelled\n");
+							}
+						}
+
+
 						sprintf(replymsg.data.buf, "OK");
 					}
+					else if(msg.option == RAIL_MSG_OPTION){
+						printf("RAIL_MSG_OPTION\n");
 
+						msg_send.hdr.type = RAIL_STATE_MSG;
+						msg_send.data.rail_state = msg.rail_state;
+
+						send_message_thread_data_t i1_send = {
+								I1_CRITICAL_CHANNEL_ATTACH_POINT,
+								&msg_send,
+								NULL,
+								PTHREAD_RWLOCK_INITIALIZER
+						};
+						send_message_thread_data_t i2_send = {
+								I2_CRITICAL_CHANNEL_ATTACH_POINT,
+								&msg_send,
+								NULL,
+								PTHREAD_RWLOCK_INITIALIZER
+						};
+
+						// Thread definitions
+						pthread_t i1_tx_fault_data;
+						pthread_t i2_tx_fault_data;
+
+						// Thread settings
+						pthread_attr_t i_tx_fault_attr;
+						struct sched_param i_tx_fault_param;
+						setThreadSettings(&i_tx_fault_attr, &i_tx_fault_param, 63, false);
+
+						pthread_create(&i1_tx_fault_data, &i_tx_fault_attr, &sendMessage, &i1_send);
+						pthread_create(&i2_tx_fault_data, &i_tx_fault_attr, &sendMessage, &i2_send);
+
+						// Set the time limit
+						struct timespec send_time_limit;
+						clock_gettime( CLOCK_REALTIME , &send_time_limit );
+						send_time_limit.tv_sec = send_time_limit.tv_sec + MSG_SEND_TIMEOUT;
+
+						if (pthread_timedjoin(i1_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+							// Didn't get a reply in time, cancel the thread
+							printf("Didn't send or reply to Intersection within time\n");
+
+							if (pthread_cancel(i1_tx_fault_data) == EOK) {
+								printf("Thread cancelled\n");
+							}
+						}
+
+						if (pthread_timedjoin(i2_tx_fault_data, NULL, &send_time_limit) == ETIMEDOUT) {
+
+							// Didn't get a reply in time, cancel the thread
+							printf("Didn't send or reply to Intersection within time\n");
+
+							if (pthread_cancel(i2_tx_fault_data) == EOK) {
+								printf("Thread cancelled\n");
+							}
+						}
+
+						sprintf(replymsg.data.buf, "OK");
+					}
 					else if(msg.option == FAULT_OPTION){
 						printf("FAULT_OPTION\n");
 						msg_send.hdr.type = FAULT_MSG;

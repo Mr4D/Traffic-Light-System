@@ -20,6 +20,7 @@ void *critical_server_channel_thread(void *data) {
 
 	living = 1;
 	while (living) {
+		printf("server waiting\n");
 		// Do your MsgReceive's here now with the chid
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
@@ -133,7 +134,7 @@ void *critical_server_channel_thread(void *data) {
 	ChannelDestroy(attach->chid);
 }
 
-void getStateData( void * data){
+void * getStateData( void * data){
 
 	get_state_thread_data_t * thread_data = (get_state_thread_data_t*)data;
 	traffic_state_data_t * i1_state_data = thread_data->i1_state_data;
@@ -154,7 +155,7 @@ void getStateData( void * data){
 	send_message_thread_data_t i2_send = {
 		I2_CRITICAL_CHANNEL_ATTACH_POINT,
 		&msg_send,
-		&i1_reply,
+		&i2_reply,
 		PTHREAD_RWLOCK_INITIALIZER
 	 };
 
@@ -218,3 +219,4 @@ void getStateData( void * data){
 		pthread_mutex_unlock(&i2_state_data->mutex_state);
 	}
 }
+

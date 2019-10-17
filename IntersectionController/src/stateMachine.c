@@ -22,7 +22,6 @@ void * timerThread (void * data){
 		if (change_state_msg.code == STATE_TIMER_EXPIRE_PULSE) {
 			writeTrafficLogFile(LOG_FILE_NAME, "(I1) - STATE_TIMER_EXPIRE_PULSE\n");
 
-			printf("(I1) - STATE_TIMER_EXPIRE_PULSE\n");
 
 			pthread_sleepon_lock();
 				change_state_flags->state_timer_timeout = true;
@@ -31,7 +30,6 @@ void * timerThread (void * data){
 		}
 		else if (change_state_msg.code == PED_TIMER_EXPIRE_PULSE) {
 			writeTrafficLogFile(LOG_FILE_NAME, "(I1) - PED_TIMER_EXPIRE_PULSE\n");
-			printf("(I1) - PED_TIMER_EXPIRE_PULSE\n");
 			pthread_sleepon_lock();
 				change_state_flags->ped_timer_timeout = true;
 				pthread_sleepon_signal(change_state_flags);
@@ -39,7 +37,6 @@ void * timerThread (void * data){
 		}
 		else if (change_state_msg.code == PED_SENSE_TIMEOUT_EXPIRE_PULSE) {
 			writeTrafficLogFile(LOG_FILE_NAME, "(I1) - PED_SENSE_TIMEOUT_EXPIRE_PULSE\n");
-			printf("(I1) - PED_SENSE_TIMEOUT_EXPIRE_PULSE\n");
 			pthread_sleepon_lock();
 				change_state_flags->ped_sense_timer_timeout = true;
 				pthread_sleepon_signal(change_state_flags);
@@ -137,6 +134,7 @@ void * trafficStateMachine(void *data) {
 		stateToString(current_state, log_message);
 		printf(log_message);
 		printf("\n");
+		printf("mode: %d\n", mode);
 		if (LOG) {	// Print state info
 
 			strcat(log_message, "\n");
@@ -150,7 +148,6 @@ void * trafficStateMachine(void *data) {
 		while (!change_state) {
 			pthread_sleepon_lock();
 				pthread_sleepon_wait(change_state_flags);
-
 				memcpy(&state_flags, change_state_flags, sizeof(state_flags));
 			pthread_sleepon_unlock();
 
@@ -158,11 +155,16 @@ void * trafficStateMachine(void *data) {
 				memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 			pthread_rwlock_unlock(&input_data->rwlock_input);
 
+			pthread_rwlock_rdlock( &mode_data->rwlock );
+				mode = mode_data->mode;
+			pthread_rwlock_unlock( &mode_data->rwlock );
+
 			if (mode == PEAK) {
+				printf("decide change peak\n");
 				change_state = decideChangeStatePeak(&state_flags, current_state, &input_queue);
 			}
 			else if (mode == OFF_PEAK) {
-
+				printf("decide change offpeak\n");
 				change_state = decideChangeStateOffPeak(&state_flags, current_state, &input_queue);
 			}
 		}
@@ -174,27 +176,13 @@ void * trafficStateMachine(void *data) {
 			clearInputOffPeak(input_data, current_state);
 		}
 
-		printf("\n\nbefore clear\n");
-		printf("(I1) - state: %d\n", state_flags.state_timer_timeout);
-		printf("(I1) -ped: %d\n", state_flags.ped_timer_timeout);
-		printf("(I1) -ped_sen: %d\n", state_flags.ped_sense_timer_timeout);
-		printf("(I1) -input: %d\n", state_flags.input);
-		printf("(I1) -fault: %d\n", state_flags.fault);
-		printf("(I1) -rest: %d\n", state_flags.reset);
-
 		clearFlags(change_state_flags, input_data);
 
-		printf("\nafter clear\n");
 		pthread_sleepon_lock();
 			memcpy(&state_flags, change_state_flags, sizeof(state_flags));
 		pthread_sleepon_unlock();
 
-		printf("(I1) - state: %d\n", state_flags.state_timer_timeout);
-		printf("(I1) - ped: %d\n", state_flags.ped_timer_timeout);
-		printf("(I1) -ped_sen: %d\n", state_flags.ped_sense_timer_timeout);
-		printf("(I1) -input: %d\n", state_flags.input);
-		printf("(I1) -fault: %d\n", state_flags.fault);
-		printf("(I1) -rest: %d\n", state_flags.reset);
+
 
 
 		if(state_flags.reset && (current_state == ALL_RED || current_state == FAULT || current_state == INITIAL)){
@@ -404,7 +392,6 @@ traffic_state_t handleFaultSig(traffic_state_t current_state) {
 
 traffic_state_t changeTrafficState_peak(traffic_state_t current_state, traffic_state_t previous_state, traffic_input_queue_t *input_queue) {
 
-	printf("(I1) - changeTrafficState_peak\n");
 	traffic_state_t next_state = INITIAL;
 
 	switch (current_state) {
