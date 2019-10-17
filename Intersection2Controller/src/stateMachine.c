@@ -82,6 +82,13 @@ void * trafficStateMachine(void *data) {
 	bool state_machine_exit = false;
 	while (!state_machine_exit) {
 
+		//DELETE
+		rail_state_t temp_rail;
+		pthread_mutex_lock(&rail_state_data->mutex_state);
+			temp_rail = rail_state_data->current_state;
+	   pthread_mutex_unlock(&rail_state_data->mutex_state);
+	   printf("rail: %d\n", temp_rail);
+
 
 		pthread_rwlock_rdlock( &mode_data->rwlock );
 			mode = mode_data->mode;
