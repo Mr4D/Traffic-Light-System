@@ -1,0 +1,205 @@
+@startuml
+
+skinparam ParticipantPadding 50
+skinparam BoxPadding 30
+
+actor car_pedestrian
+
+participant main
+participant server
+participant input
+
+box "Memory" #LightGoldenRodYellow
+    database input_queue
+    database flags
+    database mode
+    database traffic_state
+    database rail_state
+end box
+
+participant state_machine
+
+participant output
+
+activate main
+main --//: spawn_threads
+activate server
+activate input
+activate state_machine
+
+activate output
+deactivate main
+
+server --> server: setup channel
+deactivate server
+
+input --> input: set up keypad\ninterrupts
+deactivate input
+
+state_machine --//: spawn_timer
+
+state_machine --> mode: <font color=blue>r_lock()</font>
+activate mode #LightPink
+state_machine <-> mode : <font color=red>r_mode()</font>
+state_machine --> mode : <font color=blue>unlock()</font>
+deactivate mode
+
+output --> output: init_lcd
+deactivate output
+
+state_machine --> input_queue: <font color=blue>r_lock()</font>
+activate input_queue #LightPink
+state_machine <-> input_queue : <font color=red>r_queue()</font>
+state_machine --> input_queue : <font color=blue>unlock()</font>
+deactivate input_queue
+
+state_machine --> state_machine: get_next_state()
+
+state_machine -[#blue]->o traffic_state: mutex_lock()
+activate traffic_state #LightPink
+state_machine <-> traffic_state : <font color=red>w_state()</font>
+state_machine -[#green]-// output: <font color=green><&wifi> cond_signal</font>
+activate output
+state_machine --> traffic_state : <font color=blue>unlock()</font>
+deactivate traffic_state
+state_machine --//: start timer
+deactivate state_machine
+
+
+output -[#blue]->o traffic_state: mutex_lock()
+activate traffic_state #LightGreen
+output <-> traffic_state : <font color=red>r_state()</font>
+output --> traffic_state : <font color=blue>unlock()</font>
+deactivate traffic_state
+
+output -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightGreen
+output <-> rail_state : <font color=red>r_state()</font>
+output --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+
+output --> car_pedestrian : update_lcd_for_users
+deactivate output
+
+
+
+
+
+
+
+
+
+car_pedestrian --// input: trig_sensor()\ninterrupt
+activate car_pedestrian
+activate input
+deactivate car_pedestrian
+
+input --> input_queue : <font color=blue>r_lock()</font>
+activate input_queue #LightBlue
+input <-> input_queue : <font color=red>r_queue()</font>
+
+' timer --//state_machine: timer_pulse()
+
+input --> input_queue : <font color=blue>unlock()</font>
+deactivate input_queue
+
+input --> input: process_input()
+
+input --> input_queue : <font color=blue>w_lock()</font>
+activate input_queue #LightBlue
+input -> input_queue : <font color=red>write()</font>
+input --> input_queue : <font color=blue>unlock()</font>
+deactivate input_queue
+
+input -[#blue]->o flags: sleepon_lock()
+activate flags #LightBlue
+input -> flags: <font color=red>write()</font>
+input -[#green]-//: <&wifi> sleepon_signal()
+activate state_machine
+input -[#blue]-> flags: sleepon_unlock()
+
+deactivate flags
+deactivate input
+
+state_machine -[#blue]->o flags: sleepon_lock()
+activate flags #LightPink
+state_machine -> flags: <font color=red>r_flags()</font>
+state_machine -[#green]-//: <&wifi> sleepon_signal()
+state_machine -[#blue]-> flags: sleepon_unlock()
+deactivate flags
+
+state_machine --> input_queue : <font color=blue>w_lock()</font>
+activate input_queue #LightPink
+state_machine <-> input_queue : <font color=red>r_queue()</font>
+state_machine --> input_queue : <font color=blue>unlock()</font>
+deactivate input_queue
+
+state_machine --> mode: <font color=blue>r_lock()</font>
+activate mode #LightPink
+state_machine <-> mode : <font color=red>r_mode()</font>
+state_machine --> mode : <font color=blue>unlock()</font>
+deactivate mode
+
+state_machine --> state_machine: decide_change_state()
+
+state_machine --> input_queue : <font color=blue>r_lock()</font>
+activate input_queue #LightPink
+state_machine <-> input_queue : <font color=red>r_queue()</font>
+state_machine --> input_queue : <font color=blue>unlock()</font>
+deactivate input_queue
+
+state_machine --> state_machine: clear_inputs
+
+state_machine --> input_queue : <font color=blue>w_lock()</font>
+activate input_queue #LightPink
+state_machine <-> input_queue : <font color=red>write()</font>
+state_machine --> input_queue : <font color=blue>unlock()</font>
+deactivate input_queue
+
+
+state_machine -[#blue]->o flags: sleepon_lock()
+activate flags #LightPink
+state_machine -> flags: <font color=red>write()</font>
+state_machine -[#blue]-> flags: sleepon_unlock()
+deactivate flags
+
+state_machine //-- : timer_pulse
+state_machine -[#blue]->o traffic_state: mutex_lock()
+activate traffic_state #LightPink
+state_machine <-> traffic_state : <font color=red>w_state()</font>
+state_machine -[#green]-// output: <font color=green><&wifi> cond_signal</font>
+activate output
+state_machine --> traffic_state : <font color=blue>unlock()</font>
+deactivate traffic_state
+state_machine --//: start timer
+deactivate state_machine
+
+output -[#blue]->o traffic_state: mutex_lock()
+activate traffic_state #LightGreen
+output <-> traffic_state : <font color=red>r_state()</font>
+output --> traffic_state : <font color=blue>unlock()</font>
+deactivate traffic_state
+
+output -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightGreen
+output <-> rail_state : <font color=red>r_state()</font>
+output --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+
+output --> car_pedestrian : update_lcd_for_users
+deactivate output
+
+deactivate traffic_state
+
+--// server: client_request_rail()
+activate server
+
+server -[#blue]->o rail_state: <font color=blue>mutex_lock()</font>
+activate rail_state #LightSeaGreen
+server -> rail_state : <font color=red>w_state()</font>
+server --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+//-- server : reply()
+deactivate server
+
+@enduml

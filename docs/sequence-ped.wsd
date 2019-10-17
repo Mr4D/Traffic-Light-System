@@ -1,0 +1,12 @@
+@startuml
+
+    [*]   -> HALT
+    HALT  -> CROSS: On request\nand conditions valid
+    CROSS -> FLASH: On time out
+    FLASH -> HALT: On time out
+
+    HALT: Pedestrains may not\nstart crossing
+    CROSS: Pedestrains may start\ncrossing
+    FLASH: Pedestrains may complete\ntheir crossing
+
+@endumls

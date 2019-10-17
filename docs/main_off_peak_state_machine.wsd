@@ -1,46 +1,40 @@
 @startuml STATE_MACHINE_SEQUENCE_OFF_PEAK
 
-' http://www.victoriawalks.org.au/Crossing_the_road/
+[*]     --> INITIAL
 
-state TRAFFIC_SEQUENCE_OFF_PEAK {
+INITIAL --> ALL_RED
 
-    [*]     --> INITIAL
+ALL_RED ---> NS_R_G: sensor = ns_r
+NS_R_G  ---> NS_R_Y: Timer pulse
+NS_R_Y  ---> ALL_RED: Timer pulse
 
-    INITIAL --> ALL_RED
+' NS ped states
+EW_S_G_SEN ---> EW_S_G_P_X: EW_P or in queue
+EW_S_G_P_X ---> EW_S_G_P_F: Timer pulse
+EW_S_G_P_F ---> EW_S_G_SEN: Timer pulse
 
-    ALL_RED ---> NS_R_G: sensor = ns_r
-    NS_R_G  ---> NS_R_Y: Timer expiry
-    NS_R_Y  ---> ALL_RED: Timer expiry
+ALL_RED ---> EW_R_G: sensor = ew_r
+EW_R_G  ---> EW_R_Y: Timer pulse
+EW_R_Y ---> ALL_RED: Timer pulse
 
-    ' NS ped states
-    EW_S_G_SEN ---> EW_S_G_P_X: EW_P or in queue
-    EW_S_G_P_X ---> EW_S_G_P_F: 10s pulse
-    EW_S_G_P_F ---> EW_S_G_SEN: 5s pulse
+' Traffic state
+ALL_RED ---> NS_S_G_P_X: sensor = ns_str\nOR\nsensor = ns_p
+NS_S_G ---> NS_S_Y: Transition away from\nunused off-peak state
+NS_S_Y ---> ALL_RED: Timer pulse
 
-    ALL_RED ---> EW_R_G: sensor = ew_r
-    EW_R_G  ---> EW_R_Y: Timer expiry
-    EW_R_Y ---> ALL_RED: Timer expiry
+NS_S_G_SEN ---> NS_S_Y: Transition away from\nunused off-peak state
 
-    ' Traffic state
-    ALL_RED ---> NS_S_G_P_X: sensor = ns_str\nOR\nsensor = ns_p
-    NS_S_G ---> NS_S_Y:Transition away from\nunused off-peak state
-    NS_S_Y ---> ALL_RED: Timer pulse
+' NS ped states
+NS_S_G_P_X ---> NS_S_G_P_F: Timer pulse
+NS_S_G_P_F ---> NS_S_Y: Timer pulse
 
-    NS_S_G_SEN ---> NS_S_Y: Transition away from\nunused off-peak state
+' Traffic state
+ALL_RED ---> EW_S_G_SEN: !sensor\nOR\new_str\nOR\new_p
+EW_S_G_SEN ---> EW_S_G_SEN: Timer pulse
+EW_S_G_SEN ---> EW_S_Y: ((sensor && sensor != ew_str)\n|| ns_p) && Timer Expiry
+EW_S_Y ---> ALL_RED: Timer pulse
 
-    ' NS ped states
-    NS_S_G_P_X ---> NS_S_G_P_F: 10s pulse
-    NS_S_G_P_F ---> NS_S_Y: 5s pulse
-
-    ' Traffic state
-    ALL_RED ---> EW_S_G_SEN: !sensor\nOR\new_str\nOR\new_p
-    EW_S_G_SEN ---> EW_S_G_SEN: Timer expiry
-    EW_S_G_SEN ---> EW_S_Y: ((sensor && sensor != ew_str)\n|| ns_p) && Timer Expiry
-    EW_S_Y ---> ALL_RED: Timer expiry
-
-    EW_S_G ---> EW_S_Y: Transition away from\nunsed off-peak state
-
-}
+EW_S_G ---> EW_S_Y: Transition away from\nunsed off-peak state
 
 ALL_RED: Safety state
 ALL_RED: Duration: 3 seconds
@@ -62,5 +56,9 @@ NS_S_Y: Duration: 4 seconds
 EW_R_Y: Duration: 4 seconds
 EW_S_Y: Duration: 4 seconds
 NS_R_Y: Duration: 4 seconds
+
+NS_S_G_SEN: Unsused in off-peak
+NS_S_G: Unsused in off-peak
+EW_S_G: Unsused in off-peak
 
 @enduml

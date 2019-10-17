@@ -57,6 +57,12 @@ dkms.conf
 # Project directories
 *build/
 
+# Built stuff
+*.jar
+
+# generated stuff
+*.png
+
 # VM Targets
 192.168.186.128/
 192.168.186.129/
