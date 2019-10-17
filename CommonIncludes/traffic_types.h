@@ -14,22 +14,19 @@
 
 #define BUF_SIZE 100
 
-#define INTERSECTION_COUNT 2
 
 #define I1_HOSTNAME "VM_x86_Target01"
 #define I2_HOSTNAME "VM_x86_Target02"
 #define TCC_HOSTNAME "VM_x86_Target01"
-#define RCC_HOSTNAME "cycloneV_user"
-#define RAIL_HOSTNAME "RMIT_BBB_v5_03"
+#define RCC_HOSTNAME "VM_x86_Target01"
+#define RAIL_HOSTNAME "VM_x86_Target02"
 
-#define TCC_CRITICAL_CHANNEL "grp11_state_recieve"
-#define TCC_INPUT_CHANNEL "grp11_input_recieve"
-#define I1_CRITICAL_CHANNEL "grp11_rail_state_recieve"
-#define I2_CRITICAL_CHANNEL "grp11_rail_state_recieve"
-#define RC_CRITICAL_CHANNEL "grp11_sig_recieve"
-#define RCC_CRITICAL_CHANNEL "grp11_rail_state_recieve"
-
-
+#define TCC_CRITICAL_CHANNEL "tcc_grp11_state_recieve"
+#define TCC_INPUT_CHANNEL "tcc_grp11_input_recieve"
+#define I1_CRITICAL_CHANNEL "i1_grp11_rail_state_recieve"
+#define I2_CRITICAL_CHANNEL "i2_grp11_rail_state_recieve"
+#define RC_CRITICAL_CHANNEL "rc_grp11_sig_recieve"
+#define RCC_CRITICAL_CHANNEL "rcc_grp11_rail_state_recieve"
 
 /* QNET Channels */
 #define TCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" TCC_HOSTNAME "/dev/name/local/" TCC_CRITICAL_CHANNEL // hostname using full path, change myname to the name used for server
@@ -38,7 +35,6 @@
 #define I2_CRITICAL_CHANNEL_ATTACH_POINT "/net/" I2_HOSTNAME "/dev/name/local/" I2_CRITICAL_CHANNEL	// hostname using full path, change myname to the name used for server
 #define RCC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RCC_HOSTNAME "/dev/name/local/" RCC_CRITICAL_CHANNEL
 #define RC_CRITICAL_CHANNEL_ATTACH_POINT "/net/" RAIL_HOSTNAME "/dev/name/local/" RC_CRITICAL_CHANNEL
-
 
 /* Client IDs */
 #define I1_CLIENT_ID 1

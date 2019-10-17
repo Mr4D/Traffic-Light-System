@@ -104,22 +104,16 @@ int main(void) {
 		// Spawn threads
 		pthread_create(&th_input, &th_input_attr, &inputThread, &input_thread_data);
 		pthread_create(&th_rail_state_machine, &th_rail_state_machine_attr, &railStateMachine, &state_machine_thread_data);
-		pthread_create(&th_output, &th_output_attr, LCD_Control, &ouput_thread_data);
+		pthread_create(&th_output, &th_output_attr, &LCD_Control, &ouput_thread_data);
 		pthread_create(&th_critical_client_channel, &th_critical_client_channel_attr, &critical_client_channel_thread, &critial_client_thread_data);
 
 		pthread_join(th_rail_state_machine, NULL);
 
-		printf("Reseting\nKilling threads\n");
 
 		pthread_cancel(th_input);
 		pthread_cancel(th_output);
 		pthread_cancel(th_critical_client_channel);
-
-		printf("Threads destroyed\n");
-
 	}
-
-	printf("Main terminating - how did we end up here?");
 
 	return EXIT_SUCCESS;
 }

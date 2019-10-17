@@ -17,7 +17,7 @@ void initData(traffic_state_data_t *i1_state_data,
 			  get_state_thread_data_t *request_i_state_data) {
 
 	initTrafficStateData(i1_state_data);
-	initTrafficStateData(i1_state_data);
+	initTrafficStateData(i2_state_data);
 	initRailStateData(x1_state_data);
 	initModeData(traffic_mode_data);
 
@@ -91,6 +91,5 @@ int main(void) {
 	pthread_join(th_input, NULL);
 	pthread_join(th_critical_server_channel, NULL);
 	
-	printf("Main terminating\n");
 	return EXIT_SUCCESS;
 }

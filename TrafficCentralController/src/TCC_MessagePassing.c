@@ -20,13 +20,11 @@ void *critical_server_channel_thread(void *data) {
 
 	living = 1;
 	while (living) {
-		printf("server waiting\n");
 		// Do your MsgReceive's here now with the chid
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
 		if (rcvid == -1) { // Error condition, exit
 
-			printf("\nFailed to MsgReceive\n");
 			break;
 		}
 
@@ -97,7 +95,7 @@ void *critical_server_channel_thread(void *data) {
 						if (pthread_timedjoin(i1_tx_rail_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 							// Didn't get a reply in time, cancel the thread
-							printf("Didn't send or reply to Intersection within time\n");
+							printf("Didn't send or reply to Intersection 1 within time\n");
 
 							if (pthread_cancel(i1_tx_rail_data) == EOK) {
 								printf("Thread cancelled\n");
@@ -107,7 +105,7 @@ void *critical_server_channel_thread(void *data) {
 						if (pthread_timedjoin(i2_tx_rail_data, NULL, &send_time_limit) == ETIMEDOUT) {
 
 							// Didn't get a reply in time, cancel the thread
-							printf("Didn't send or reply to Intersection within time\n");
+							printf("Didn't send or reply to Intersection 2 within time\n");
 
 							if (pthread_cancel(i2_tx_rail_data) == EOK) {
 								printf("Thread cancelled\n");
@@ -182,7 +180,7 @@ void * getStateData( void * data){
 
 		// Didn't get a reply in time, cancel the thread
 
-		printf("Didn't send or reply to Intersection within time\n");
+		printf("Didn't send or reply to Intersection 1 within time\n");
 
 		if (pthread_cancel(i1_state_request) == EOK) {
 			printf("Thread cancelled\n");
@@ -202,7 +200,7 @@ void * getStateData( void * data){
 	if (pthread_timedjoin(i2_state_request, NULL, &send_time_limit) == ETIMEDOUT) {
 
 		// Didn't get a reply in time, cancel the thread
-		printf("Didn't send or reply to Intersection within time\n");
+		printf("Didn't send or reply to Intersection 2 within time\n");
 
 		if (pthread_cancel(i2_state_request) == EOK) {
 			printf("Thread cancelled\n");

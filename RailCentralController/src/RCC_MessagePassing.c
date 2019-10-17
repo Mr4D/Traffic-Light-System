@@ -13,15 +13,12 @@ void *critical_client_channel_thread(void *data) {
 		int server_coid = -1;
 
 		while (server_coid == -1) {
-			printf("  ---> Trying to connect to server named: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
 			if ((server_coid = name_open(TCC_CRITICAL_CHANNEL_ATTACH_POINT, 0)) == -1)
 			{
-				printf("\n    ERROR, could not connect to server!\n\n");
 			}
 			sleep(3);
 		}
 
-		printf("Connection established to: %s\n", TCC_CRITICAL_CHANNEL_ATTACH_POINT);
 
 	    // We would have pre-defined data to stuff here
 		msg.hdr.type = 0x00;
@@ -40,16 +37,12 @@ void *critical_client_channel_thread(void *data) {
 				state_data->data_ready = false;
 			pthread_mutex_unlock(&state_data->mutex_state);
 
-			printf("data consumed\n");
-
 			fflush(stdout);
 			if (MsgSend(server_coid, &msg, sizeof(msg), &reply, sizeof(reply)) == -1) {
-				printf(" Error data '%d' NOT sent to server\n", msg.data.rail_state);
 					// maybe we did not get a reply from the server
 				break;
 			}
 			else { // now process the reply
-				printf("   -->Reply is: '%s'\n", reply.data.buf);
 			}
 
 			sleep(5);
@@ -64,7 +57,6 @@ void *critical_server_channel_thread(void *data) {
 	critical_server_thread_data_t *thread_data = (critical_server_thread_data_t *)data;
 	rail_state_data_t *state_data = thread_data->rail_state_data;
 
-	printf("critical_server_channel()\n");
 	name_attach_t *attach = createChannel(RCC_CRITICAL_CHANNEL);
 
 	msg_data_t msg;
@@ -81,7 +73,6 @@ void *critical_server_channel_thread(void *data) {
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 
 		if (rcvid == -1) { // Error condition, exit
-			printf("\nFailed to MsgReceive\n");
 			break;
 		}
 
@@ -127,7 +118,6 @@ void *critical_server_channel_thread(void *data) {
 					MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
 				}
 				else {
-					printf("\nERROR: Server received something, but could not handle it correctly\n");
 				}
 			}
 		}

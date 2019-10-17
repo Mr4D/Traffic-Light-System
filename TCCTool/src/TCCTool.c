@@ -94,7 +94,7 @@ int main(int argc,char *argv[]) {
 				}
 			}
 			else {
-				printf("\nToo Many Inputs\n");
+				printf("\nIncorrect Inputs\n");
 
 			}
 		}
@@ -162,9 +162,7 @@ int main(int argc,char *argv[]) {
 		tool_reply_t replymsg; // replymsg structure for sending back to client
 
 		int server_coid;
-		printf("  ---> Trying to connect to server named: %s\n", TCC_INPUT_CHANNEL_ATTACH_POINT);
 		if ((server_coid = name_open(TCC_INPUT_CHANNEL_ATTACH_POINT, 0)) == -1) {
-			printf("\n    ERROR, could not connect to server!\n\n");
 			return EXIT_SUCCESS;
 		}
 
@@ -172,17 +170,25 @@ int main(int argc,char *argv[]) {
 		fflush(stdout);
 
 		if (MsgSend(server_coid, &msg, sizeof(msg), &replymsg, sizeof(replymsg)) == -1) {
-			printf(" Error data '%d' NOT sent to server\n", msg.func);
-			// maybe we did not get a reply from the server
 		}
 		if(option == STATE_OPTION && func == GET_FUNC) { // now process the reply
 			printf("   -->Reply \n");
-			printf("   \ti1  : '%d'\n", replymsg.data.state.i1);
-			printf("   \ti2  : '%d'\n", replymsg.data.state.i2);
-			printf("   \tx1  : '%d'\n", replymsg.data.state.x1);
+
+			char buf[BUF_SIZE];
+			stateToString(replymsg.data.state.i1, buf);
+			printf("   \ti1  : '%s'\n", buf);
+			stateToString(replymsg.data.state.i2, buf);
+			printf("   \ti2  : '%s'\n", buf);
+			railStateToString(replymsg.data.state.x1, buf);
+			printf("   \tx1  : '%s'\n", buf);
 		}
 		if (option == MODE_OPTION && func == GET_FUNC){
-			printf("   \tmode: '%d'\n", replymsg.data.state.mode);
+			if(replymsg.data.state.mode == PEAK){
+				printf("PEAK\n");
+			}
+			else {
+				printf("OFF PEAK\n");
+			}
 		}
 
 		ConnectDetach(server_coid);

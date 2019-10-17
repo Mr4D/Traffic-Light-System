@@ -49,6 +49,5 @@ int main(void) {
 
 	pthread_join(th_critical_server_channel, NULL);
 
-	printf("main terminating\n");
 	return EXIT_SUCCESS;
 }

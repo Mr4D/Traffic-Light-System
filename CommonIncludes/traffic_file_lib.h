@@ -2,8 +2,8 @@
 
 #include "traffic_types.h"
 
-#define LOG 1
-#define TEST 1
+#define LOG 0
+#define TEST 0
 
 
 

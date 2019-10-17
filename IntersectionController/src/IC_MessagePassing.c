@@ -16,12 +16,10 @@ void * critical_server_channel_thread(void * data) {
 
 	// Create a local name (/dev/name/...)
 	if ((attach = createChannel(I1_CRITICAL_CHANNEL)) == NULL) {
-		printf("couldn't create channel (I1)\n");
 		pthread_exit(NULL);
 	}
 	else {
 		thread_data->attach = attach;
-		printf("channel: %s (I1)\n", I1_CRITICAL_CHANNEL);
 	}
 
 
@@ -39,9 +37,7 @@ void * critical_server_channel_thread(void * data) {
 	bool reset = false;
 	while (!reset) {
 	// Do your MsgReceive's here now with the chid
-		printf("wait for message\n");
 	  rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
-	  printf("message received (I1)\n");
 
 	  if (rcvid == -1)  // Error condition, exit
 	  {
@@ -79,13 +75,11 @@ void * critical_server_channel_thread(void * data) {
 
 
 			   if(msg.hdr.type == STATE_REQUEST_MSG){
-				   printf("STATE_REQUEST_MSG\n");
 				   pthread_mutex_lock(&traffic_state_data->mutex_state);
 					   replymsg.data.traffic_state =  traffic_state_data->current_state;
 				   pthread_mutex_unlock(&traffic_state_data->mutex_state);
 			   }
 			   else if(msg.hdr.type == RAIL_STATE_MSG){
-				   printf("RAIL_STATE_MSG\n");
 				   pthread_mutex_lock(&rail_state_data->mutex_state);
 					   rail_state_data->current_state = msg.data.rail_state;
 				   pthread_mutex_unlock(&rail_state_data->mutex_state);
@@ -93,8 +87,6 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == MODE_MSG){
-				   printf("MODE_MSG\n");
-				   printf("mode msg: %d\n", msg.data.mode);
 				   pthread_rwlock_wrlock(&traffic_mode_data->rwlock);
 					   traffic_mode_data->mode = msg.data.mode;
 				   pthread_rwlock_unlock(&traffic_mode_data->rwlock);
@@ -107,7 +99,6 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == FAULT_MSG){
-				   printf("FAULT_MSG\n");
 				   pthread_mutex_lock(&fault_data->mutex);
 					   fault_data->fault = msg.data.fault;
 				   pthread_mutex_unlock(&fault_data->mutex);
@@ -120,10 +111,8 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == RESET_MSG){
-				   printf("RESET_MSG\n");
 				   if(msg.data.reset){
 					   reset = msg.data.reset;
-					   printf("reset: %d\n", reset);
 					   pthread_sleepon_lock();
 							change_state_flags->reset = true;
 							pthread_sleepon_signal(change_state_flags);
@@ -132,8 +121,6 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else {
-				   printf("msg.type: %d\n", msg.hdr.type);
-				   printf("message type not defined\n");
 			   }
 
 			   if(LOG){
@@ -151,7 +138,6 @@ void * critical_server_channel_thread(void * data) {
 
 	}
 
-	printf("name detach\n");
 
 	return EXIT_SUCCESS;
 }

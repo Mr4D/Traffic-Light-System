@@ -164,3 +164,94 @@ void handleIOConnect(msg_data_t *msg, int rcvid) {
 		}
 	}
 }
+
+void stateToString(traffic_state_t state, char *state_str) {
+
+	switch (state) {
+		case INITIAL:
+			sprintf(state_str, "INITIAL");
+			break;
+
+		case ALL_RED:
+			sprintf(state_str, "ALL_RED");
+			break;
+
+		case FAULT:
+			sprintf(state_str, "FAULT");
+			break;
+
+		case NS_S_G_SEN:
+			sprintf(state_str, "NS_S_G_SEN");
+			break;
+
+		case NS_S_G_P_X:
+			sprintf(state_str, "NS_S_G_P_X");
+			break;
+
+		case NS_S_G_P_F:
+			sprintf(state_str, "NS_S_G_P_F");
+			break;
+
+		case NS_S_G:
+			sprintf(state_str, "NS_S_G");
+			break;
+
+		case NS_S_Y:
+			sprintf(state_str, "NS_S_Y");
+			break;
+
+		case EW_R_G:
+			sprintf(state_str, "EW_R_G");
+			break;
+
+		case EW_R_Y:
+			sprintf(state_str, "EW_R_Y");
+			break;
+
+		case EW_S_G_SEN:
+			sprintf(state_str, "EW_S_G_SEN");
+			break;
+
+		case EW_S_G_P_X:
+			sprintf(state_str, "EW_S_G_P_X");
+			break;
+
+		case EW_S_G_P_F:
+			sprintf(state_str, "EW_S_G_P_F");
+			break;
+
+		case EW_S_G:
+			sprintf(state_str, "EW_S_G");
+			break;
+
+		case EW_S_Y:
+			sprintf(state_str, "EW_S_Y");
+			break;
+
+		case NS_R_G:
+			sprintf(state_str, "NS_R_G");
+			break;
+
+		case NS_R_Y:
+			sprintf(state_str, "NS_R_Y");
+			break;
+
+		default:
+			break;
+	}
+}
+
+void railStateToString(rail_state_t state, char *state_str) {
+
+	switch (state) {
+		case TRAIN:
+			sprintf(state_str, "TRAIN");
+			break;
+		case NO_TRAIN:
+			sprintf(state_str, "NO_TRAIN");
+			break;
+		case FAULT:
+			sprintf(state_str, "FAULT");
+			break;
+	}
+}

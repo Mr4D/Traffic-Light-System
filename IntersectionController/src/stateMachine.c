@@ -82,12 +82,6 @@ void * trafficStateMachine(void *data) {
 	bool state_machine_exit = false;
 	while (!state_machine_exit) {
 
-		//DELETE
-		rail_state_t temp_rail;
-		pthread_mutex_lock(&rail_state_data->mutex_state);
-			temp_rail = rail_state_data->current_state;
-	   pthread_mutex_unlock(&rail_state_data->mutex_state);
-	   printf("rail: %d\n", temp_rail);
 
 		pthread_rwlock_rdlock( &mode_data->rwlock );
 			mode = mode_data->mode;
@@ -98,7 +92,6 @@ void * trafficStateMachine(void *data) {
 			memcpy(&input_queue, input_data->input_queue, sizeof(input_queue));
 		pthread_rwlock_unlock(&input_data->rwlock_input);
 
-		//printInputBuf(input_queue.input_buffer, input_queue.end_index);
 		if (state_flags.fault) {
 			next_state = handleFaultSig(current_state);
 		}
@@ -137,10 +130,6 @@ void * trafficStateMachine(void *data) {
 			}
 		}
 
-		stateToString(current_state, log_message);
-		printf(log_message);
-		printf("\n");
-		printf("mode: %d\n", mode);
 		if (LOG) {	// Print state info
 
 			strcat(log_message, "\n");
@@ -166,11 +155,9 @@ void * trafficStateMachine(void *data) {
 			pthread_rwlock_unlock( &mode_data->rwlock );
 
 			if (mode == PEAK) {
-				printf("decide change peak\n");
 				change_state = decideChangeStatePeak(&state_flags, current_state, &input_queue);
 			}
 			else if (mode == OFF_PEAK) {
-				printf("decide change offpeak\n");
 				change_state = decideChangeStateOffPeak(&state_flags, current_state, &input_queue);
 			}
 		}
@@ -193,7 +180,6 @@ void * trafficStateMachine(void *data) {
 
 		if(state_flags.reset && (current_state == ALL_RED || current_state == FAULT || current_state == INITIAL)){
 			state_machine_exit = true;
-			printf("Exit\n");
 		}
 	};
 
@@ -280,7 +266,6 @@ void initiliseTimer(int chid) {
 
 	if (ped_sense_timeout_timer_event.sigev_coid != -1) {
 
-		printf("(I1) - set ped timeout timer\n");
 		ped_sense_timeout_timer_event.sigev_notify = SIGEV_PULSE;
 
 		struct sched_param th_param;
@@ -317,7 +302,6 @@ void initiliseTimer(int chid) {
 
 traffic_state_t handleFaultSig(traffic_state_t current_state) {
 
-	printf("handleFaultSig()\n");
 	traffic_state_t next_state = FAULT;
 
 	switch (current_state) {
@@ -971,79 +955,4 @@ void clearFlags(change_state_flags_t * change_state_flags, traffic_input_data_t 
 
 
 
-void stateToString(traffic_state_t state, char *state_str) {
-
-	switch (state) {
-		case INITIAL:
-			sprintf(state_str, "INITIAL");
-			break;
-
-		case ALL_RED:
-			sprintf(state_str, "ALL_RED");
-			break;
-
-		case FAULT:
-			sprintf(state_str, "FAULT");
-			break;
-
-		case NS_S_G_SEN:
-			sprintf(state_str, "NS_S_G_SEN");
-			break;
-
-		case NS_S_G_P_X:
-			sprintf(state_str, "NS_S_G_P_X");
-			break;
-
-		case NS_S_G_P_F:
-			sprintf(state_str, "NS_S_G_P_F");
-			break;
-
-		case NS_S_G:
-			sprintf(state_str, "NS_S_G");
-			break;
-
-		case NS_S_Y:
-			sprintf(state_str, "NS_S_Y");
-			break;
-
-		case EW_R_G:
-			sprintf(state_str, "EW_R_G");
-			break;
-
-		case EW_R_Y:
-			sprintf(state_str, "EW_R_Y");
-			break;
-
-		case EW_S_G_SEN:
-			sprintf(state_str, "EW_S_G_SEN");
-			break;
-
-		case EW_S_G_P_X:
-			sprintf(state_str, "EW_S_G_P_X");
-			break;
-
-		case EW_S_G_P_F:
-			sprintf(state_str, "EW_S_G_P_F");
-			break;
-
-		case EW_S_G:
-			sprintf(state_str, "EW_S_G");
-			break;
-
-		case EW_S_Y:
-			sprintf(state_str, "EW_S_Y");
-			break;
-
-		case NS_R_G:
-			sprintf(state_str, "NS_R_G");
-			break;
-
-		case NS_R_Y:
-			sprintf(state_str, "NS_R_Y");
-			break;
-
-		default:
-			break;
-	}
-}
 

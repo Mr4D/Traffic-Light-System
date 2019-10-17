@@ -84,16 +84,12 @@ int main(void) {
 
 	FILE *fp;
 	if ((fp = openTrafficLogFile(LOG_FILE_NAME)) == NULL) {
-		printf("Failed to open log file: %s\n", LOG_FILE_NAME);
 	}
 	else {
-		printf("Successful open log file: %s\n", LOG_FILE_NAME);
 		fclose(fp);
 	}
 
 	while (1) {
-
-		printf("At reset point\n");
 
 		// Declare memory for all data
 		traffic_mode_data_t traffic_mode_data;
@@ -149,26 +145,22 @@ int main(void) {
 
 		// Spawn threads
 		pthread_create(&th_critical_server_channel, &th_critical_server_channel_attr, &critical_server_channel_thread, &critical_server_data);
-		//pthread_create(&th_input, &th_input_attr, &inputThread, &input_thread_data);
+		pthread_create(&th_input, &th_input_attr, &inputThread, &input_thread_data);
 		pthread_create(&th_traffic_state_machine, &th_traffic_state_machine_attr, &trafficStateMachine, &state_machine_thread_data);
-		//pthread_create(&th_output, &th_output_attr, LCD_Control, &output_thread_data);
+		pthread_create(&th_output, &th_output_attr, &LCD_Control, &output_thread_data);
 
 		pthread_join(th_traffic_state_machine, NULL);		// Join state machine. This thread should exit on a reset signal
 
 		// Reset: At this point the state machine has terminated. Kill all threads and start again
-
-		printf("Reseting\nKilling threads\n");
 
 		pthread_cancel(th_input);
 		pthread_cancel(th_output);
 		pthread_cancel(th_critical_server_channel);
 		name_detach(critical_server_data.attach, NULL);
 
-		printf("Threads destroyed\n");
 	
 	}
 
-	printf("Main terminating - how did we end up here?");
 
 	return EXIT_SUCCESS;
 }

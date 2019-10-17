@@ -40,7 +40,6 @@ void *LCD_Control(void *data) {
 	error = openLCD(filep);
 
 	if (error != 0) {
-		printf("Fatal Error: LCD could not initialize.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -153,8 +152,6 @@ int I2cWrite_(int *fd, uint8_t Address, uint8_t mode, uint8_t *pBuffer, uint32_t
 											   // int devctlv(int filedes, int dcmd,int sparts, int rparts, const iov_t *sv, const iov_t *rv, int *dev_info_ptr);
 	status = devctlv(*fd, DCMD_I2C_SEND, 2, 0, sv, NULL, NULL);
 
-	//if (status != EOK)
-	//printf("status = %s\n", strerror ( status ));
 
 	return status;
 }
@@ -245,7 +242,6 @@ int openLCD(int *filep) {
 		//fprintf(stderr, "Error setting the bus speed: %d\n",strerror ( error ));
 		exit(EXIT_FAILURE);
 	} else
-		//printf("Bus speed set = %d\n", speed);
 
 		Initialise_LCD(filep, LCDi2cAdd);
 
@@ -277,7 +273,6 @@ int writeLCD(int row, int col, char write[], int *filep) {
 	werror = I2cWrite_(filep, LCDi2cAdd, DATA_SEND, &LCDdata[0], sizeof(LCDdata));
 	// write new data to I2C
 
-	//printf("\nComplete\n");
 
 	return werror;
 }

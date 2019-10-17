@@ -37,3 +37,7 @@ int connectChannel(const char *attach_point);
 void handlePulse(msg_data_t *msg);
 
 void handleIOConnect(msg_data_t *msg, int rcvid);
+
+
+void stateToString(traffic_state_t state, char *state_str);
+void railStateToString(rail_state_t state, char *state_str);

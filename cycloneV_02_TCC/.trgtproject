@@ -11,7 +11,11 @@
                 <SYSNAME value="QNX"/>
                 <CPU value="x86_64"/>
                 <HASVERSION value="1"/>
+<<<<<<< HEAD
                 <HOSTNAME value="VM_x86_Target02"/>
+=======
+                <HOSTNAME value="cycloneV_user"/>
+>>>>>>> 1b1ab83d9ab7b29a68b00fe6af8c84efb45515fc
                 <OS value="nto"/>
                 <QCONN_VERSION value="1.4.207944"/>
                 <RELEASE value="7.0.0"/>
@@ -19,12 +23,16 @@
             </connection>
             <qconnostype value="nto"/>
             <project>
-                <name value="cycloneV_02_TCC"/>
+                <name value="2_TCC"/>
             </project>
             <qconnport value="8000"/>
             <qconnguid value="6c3e4938-2105-4d4d-9968-ea6e4b929667"/>
             <targettmpdir value="/tmp"/>
+<<<<<<< HEAD
             <qconnhostname value="192.168.0.4"/>
+=======
+            <qconnhostname value="192.168.0.5"/>
+>>>>>>> 1b1ab83d9ab7b29a68b00fe6af8c84efb45515fc
         </item>
     </data>
 </trgtproject>

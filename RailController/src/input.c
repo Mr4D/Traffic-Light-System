@@ -2,7 +2,6 @@
 
 void *inputThread(void *data) {
 
-	printf("inputThread()\n");
 	input_thread_data_t *thread_data = (input_thread_data_t *)data;
 
 	rail_input_data_t *input_data = thread_data->input_data;
@@ -12,7 +11,6 @@ void *inputThread(void *data) {
 	uintptr_t control_module = mmap_device_io(AM335X_CONTROL_MODULE_SIZE, AM335X_CONTROL_MODULE_BASE);
 	uintptr_t gpio1_base = mmap_device_io(AM335X_GPIO_SIZE, AM335X_GPIO1_BASE);
 
-	printf("ISR_area_data\n");
 	// initalise the global stuct
 	ISR_area_data.count_thread = 0;
 	ISR_area_data.gpio1_base = gpio1_base;
@@ -87,7 +85,6 @@ void *inputThread(void *data) {
 			// Block main until we get a sigevent of type: 	ISR_area_data.pevent
 			InterruptWait(0, NULL); // block this thread until an interrupt occurs  (Wait for a hardware interrupt)
 			
-			// printf("do interrupt work here...\n");
 			int val = readKeypad(gpio1_base);
 
 			pthread_rwlock_wrlock(&input_data->rwlock_input);
@@ -256,13 +253,11 @@ int readKeypad(uintptr_t gpio1_base) {
 
 			val = KeypadReadIObit(gpio1_base, SD0); // read in data bit
 			val = ~val & 0x01;						// invert bit and mask out everything but the LSB
-			//printf("val[%u]=%u, ",i, val);
+
 			word = word | (val << i); // add data bit to word in unique position (build word up bit by bit)
 		}
-		//printf("word=%u\n",word);
 		key = DecodeKeyValue(word);
 
-		//printf("Interrupt count = %i\n", ISR_area_data.count_thread);
 	}
 
 	return key;

@@ -15,13 +15,11 @@ void * critical_server_channel_thread(void * data) {
 	name_attach_t * attach;
 
 	// Create a local name (/dev/name/...)
-	if ((attach = createChannel(I2_CRITICAL_CHANNEL)) == NULL) {
-		printf("(I2) - Couldn't create channel\n");
+	if ((attach = createChannel(I1_CRITICAL_CHANNEL)) == NULL) {
 		pthread_exit(NULL);
 	}
 	else {
 		thread_data->attach = attach;
-		printf("(I2) - channel: %s\n ", I2_CRITICAL_CHANNEL);
 	}
 
 
@@ -44,7 +42,7 @@ void * critical_server_channel_thread(void * data) {
 	  if (rcvid == -1)  // Error condition, exit
 	  {
 		  if(LOG){
-			  writeTrafficLogFile(LOG_FILE_NAME,"\n(I2) - Failed to MsgReceive \n");
+			  writeTrafficLogFile(LOG_FILE_NAME,"\n(I1) - Failed to MsgReceive\n");
 		  }
 		  break;
 	  }
@@ -70,7 +68,6 @@ void * critical_server_channel_thread(void * data) {
 			   // put your message handling code here and assemble a reply message
 
 			  if(LOG){
-				  sprintf(log_message, "(I2) - Server received data packet with value of '%d' from client (ID:%d), ", msg.data.rail_state, msg.client_id);
 				  writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			  }
 			   fflush(stdout);
@@ -78,13 +75,11 @@ void * critical_server_channel_thread(void * data) {
 
 
 			   if(msg.hdr.type == STATE_REQUEST_MSG){
-				   printf("STATE_REQUEST_MSG\n");
 				   pthread_mutex_lock(&traffic_state_data->mutex_state);
 					   replymsg.data.traffic_state =  traffic_state_data->current_state;
 				   pthread_mutex_unlock(&traffic_state_data->mutex_state);
 			   }
 			   else if(msg.hdr.type == RAIL_STATE_MSG){
-				   printf("RAIL_STATE_MSG\n");
 				   pthread_mutex_lock(&rail_state_data->mutex_state);
 					   rail_state_data->current_state = msg.data.rail_state;
 				   pthread_mutex_unlock(&rail_state_data->mutex_state);
@@ -92,8 +87,6 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == MODE_MSG){
-				   printf("MODE_MSG\n");
-				   printf("mode msg: %d\n", msg.data.mode);
 				   pthread_rwlock_wrlock(&traffic_mode_data->rwlock);
 					   traffic_mode_data->mode = msg.data.mode;
 				   pthread_rwlock_unlock(&traffic_mode_data->rwlock);
@@ -106,7 +99,6 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == FAULT_MSG){
-				   printf("FAULT_MSG\n");
 				   pthread_mutex_lock(&fault_data->mutex);
 					   fault_data->fault = msg.data.fault;
 				   pthread_mutex_unlock(&fault_data->mutex);
@@ -119,10 +111,8 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else if(msg.hdr.type == RESET_MSG){
-				   printf("RESET_MSG\n");
 				   if(msg.data.reset){
 					   reset = msg.data.reset;
-					   printf("reset: %d\n", reset);
 					   pthread_sleepon_lock();
 							change_state_flags->reset = true;
 							pthread_sleepon_signal(change_state_flags);
@@ -131,12 +121,10 @@ void * critical_server_channel_thread(void * data) {
 				   sprintf(replymsg.data.buf,"OK");
 			   }
 			   else {
-				   printf("msg.type: %d\n", msg.hdr.type);
-				   printf("message type not defined\n");
 			   }
 
 			   if(LOG){
-				   sprintf(log_message, "\n(I2)\t-----> replying with: '%d'\n",replymsg.data.traffic_state);
+				   sprintf(log_message, "\n(I1)\t-----> replying with: '%d'\n",replymsg.data.traffic_state);
 				   writeTrafficLogFile(LOG_FILE_NAME,log_message);
 			   }
 			   MsgReply(rcvid, EOK, &replymsg, sizeof(replymsg));
@@ -145,12 +133,13 @@ void * critical_server_channel_thread(void * data) {
 	  }
 	  else
 	  {
-		  writeTrafficLogFile(LOG_FILE_NAME, "\nERROR: Server received something, but could not handle it correctly\n");
+		  if(LOG){
+			  writeTrafficLogFile(LOG_FILE_NAME, "\nERROR: Server received something, but could not handle it correctly\n");
+		  }
 	  }
 
 	}
 
-	printf("name detach\n");
 
 	return EXIT_SUCCESS;
 }

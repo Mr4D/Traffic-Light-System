@@ -2,8 +2,6 @@
 
 void *railStateMachine(void *data) {
 
-	printf("RailStateMachine()\n");
-
 	struct _pulse change_state_msg;
 	int rcvid;
 
@@ -38,7 +36,6 @@ void *railStateMachine(void *data) {
 			current_state = NO_TRAIN;
 		}
 		else {
-			printf("STATE ERROR\n");
 		}
 
 		// update previous state
@@ -51,7 +48,6 @@ void *railStateMachine(void *data) {
 		pthread_mutex_unlock(&state_data->mutex_state);
 
 		// Print state info
-		printState(state_data->current_state);
 
 
 
