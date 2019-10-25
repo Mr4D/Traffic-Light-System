@@ -1,6 +1,6 @@
 @startuml
 
-skinparam ParticipantPadding 50
+skinparam ParticipantPadding 100
 skinparam BoxPadding 30
 
 actor car_pedestrian

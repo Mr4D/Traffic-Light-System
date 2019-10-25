@@ -1,0 +1,144 @@
+@startuml
+
+skinparam ParticipantPadding 25
+skinparam BoxPadding 30
+
+actor traffic_admin
+
+participant main
+participant server
+participant tool_server
+
+
+
+box "Memory" #LightGoldenRodYellow
+    database i1_state
+    database i2_state
+    database rail_state
+    database i1_state
+end box
+
+participant get_data
+participant i1_client
+participant i2_client
+
+
+
+
+activate main
+main --//: spawn_threads
+
+
+activate server
+activate tool_server
+deactivate main
+
+server --> server: setup_channel()
+deactivate server
+
+tool_server --> tool_server: setup_channel()
+deactivate tool_server
+
+--// server: rail_client_msg
+activate server
+
+server -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightPink
+server -> rail_state : <font color=red>w_state()</font>
+server --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+
+server --> i1_client: spawn_send_thread
+server --> i2_client: spawn_send_thread
+
+
+
+activate i1_client
+activate i2_client
+
+i1_client --//: send_to_I1()
+deactivate i1_client
+
+i2_client --//: send_to_I2()
+deactivate i2_client
+deactivate server
+
+traffic_admin --// tool_server: request_state_data
+activate traffic_admin
+deactivate traffic_admin
+activate tool_server
+tool_server --> get_data: spawn_thread
+deactivate tool_server
+activate get_data
+
+get_data --> i1_client: spawn_send_thread
+activate i1_client
+get_data --> i2_client: spawn_send_thread
+activate i2_client
+deactivate get_data
+
+i1_client --//: request_state()
+deactivate i1_client
+i1_client //--: response_state
+activate i1_client
+
+i1_client -[#blue]->o i1_state: mutex_lock()
+activate i1_state #LightPink
+i1_client -> i1_state : <font color=red>w_state()</font>
+i1_client --> i1_state : <font color=blue>unlock()</font>
+deactivate i1_state
+i1_client --> get_data: join()
+deactivate i1_client
+
+i2_client --//: request_state()
+deactivate i2_client
+i2_client //--: response_state
+activate i2_client
+
+i2_client -[#blue]->o i2_state: mutex_lock()
+activate i2_state #LightPink
+i2_client -> i2_state : <font color=red>w_state()</font>
+i2_client --> i2_state : <font color=blue>unlock()</font>
+deactivate i2_state
+i2_client --> get_data: join()
+deactivate i2_client
+activate get_data
+get_data --> tool_server: join()
+deactivate get_data
+activate tool_server
+
+tool_server -[#blue]->o i1_state: mutex_lock()
+activate i1_state #LightPink
+tool_server -> i1_state : <font color=red>r_state()</font>
+tool_server --> i1_state : <font color=blue>unlock()</font>
+deactivate i1_state
+
+tool_server -[#blue]->o i2_state: mutex_lock()
+activate i2_state #LightPink
+tool_server -> i2_state : <font color=red>r_state()</font>
+tool_server --> i2_state : <font color=blue>unlock()</font>
+deactivate i2_state
+
+tool_server -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightPink
+tool_server -> rail_state : <font color=red>r_state()</font>
+tool_server --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+
+tool_server --> traffic_admin: reponse_state_data
+deactivate tool_server
+deactivate server
+
+activate traffic_admin
+deactivate traffic_admin
+
+
+
+
+
+
+
+
+
+
+@enduml

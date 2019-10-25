@@ -1,0 +1,129 @@
+@startuml
+
+skinparam ParticipantPadding 25
+skinparam BoxPadding 30
+
+actor train
+actor traffic_peds
+
+participant main
+participant input
+
+box "Memory" #LightGoldenRodYellow
+    database input_data
+    database rail_state
+    database flags
+end box
+
+participant state_machine
+participant output
+participant client
+
+
+
+activate main
+main --//: spawn_threads
+activate input
+activate state_machine
+activate client
+activate output
+deactivate main
+
+input --> input: set up keypad\ninterrupts
+deactivate input
+
+state_machine --> input_data: <font color=blue>r_lock()</font>
+deactivate state_machine
+' activate input_data #LightPink
+' state_machine <-> mode : <font color=red>r_mode()</font>
+' state_machine --> mode : <font color=blue>unlock()</font>
+
+
+output --> output: init_lcd
+deactivate output
+
+client --> client: setup_channel()
+deactivate client
+
+
+train --> input: input\ninterrupt()
+activate input
+input --> input_data: <font color=blue>w_lock()</font>
+activate input_data #LightPink
+input -> input_data : <font color=red>w_input()</font>
+input --> input_data : <font color=blue>unlock()</font>
+deactivate input_data
+
+input -[#blue]->o flags: sleepon_lock()
+activate flags #LightPink
+input -> flags: <font color=red>write()</font>
+input -[#green]-//: <&wifi> sleepon_signal()
+activate state_machine
+input -[#blue]-> flags: sleepon_unlock()
+deactivate flags
+deactivate input
+
+
+state_machine -[#blue]->o flags: sleepon_lock()
+activate flags #LightSalmon
+state_machine -> flags: <font color=red>read()</font>
+state_machine -[#blue]-> flags: sleepon_unlock()
+deactivate flags
+
+state_machine --> state_machine: check_flags
+
+state_machine -[#blue]->o flags: sleepon_lock()
+activate flags #LightSalmon
+state_machine -> flags: <font color=red>write()</font>
+state_machine -[#blue]-> flags: sleepon_unlock()
+deactivate flags
+
+
+
+state_machine --> input_data: <font color=blue>r_lock()</font>
+activate input_data #LightSalmon
+state_machine <-> input_data : <font color=red>r_input()</font>
+state_machine --> input_data : <font color=blue>unlock()</font>
+deactivate input_data
+
+state_machine --> state_machine: decide_state()
+
+state_machine -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightSalmon
+state_machine -> rail_state : <font color=red>w_state()</font>
+state_machine -[#green]-//: <font color=green><&wifi> cond_signal</font>
+activate output
+state_machine --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+deactivate state_machine
+
+output -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightBlue
+output -> rail_state : <font color=red>r_state()</font>
+output --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+output --// traffic_peds : set_output()
+deactivate output
+
+activate client
+client -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightSkyBlue
+client -> rail_state : <font color=red>r_state()</font>
+client --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+client --//: send_state_to_RCC
+deactivate client
+
+
+
+
+
+
+
+
+
+
+
+
+
+@enduml

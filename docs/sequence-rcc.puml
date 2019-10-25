@@ -1,0 +1,56 @@
+@startuml
+
+skinparam ParticipantPadding 50
+skinparam BoxPadding 30
+
+participant main
+participant server
+
+box "Memory" #LightGoldenRodYellow
+    database rail_state
+end box
+
+participant client
+
+
+
+activate main
+main --//: spawn_threads
+deactivate main
+
+
+activate server
+activate client
+server --> server: setup_channel()
+deactivate server
+client --> client: setup_channel()
+deactivate client
+
+--// server: rail_state()
+activate server
+server -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightPink
+server <-> rail_state : <font color=red>w_state()</font>
+server -[#green]-//: <font color=green><&wifi> cond_signal</font>
+activate client
+server --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+deactivate server
+
+client -[#blue]->o rail_state: mutex_lock()
+activate rail_state #LightPink
+client <-> rail_state : <font color=red>r_state()</font>
+client --> rail_state : <font color=blue>unlock()</font>
+deactivate rail_state
+client --//: update_tcc()
+deactivate client
+
+
+
+
+
+
+
+
+
+@enduml

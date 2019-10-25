@@ -9,25 +9,46 @@ INITIAL ---> TRAFFIC_SEQUENCE_PEAK: Mode: Peak
 INITIAL                    --> FAULT: On any error detection
 TRAFFIC_SEQUENCE_OFF_PEAK  --> FAULT: On an error
 TRAFFIC_SEQUENCE_PEAK  --> FAULT: On an error
-FAULT                      --> INITIAL: On recovery
+FAULT                      --> INITIAL: Reset
+INITIAL --> INITIAL: Reset
+TRAFFIC_SEQUENCE_OFF_PEAK --> INITIAL: Reset
+TRAFFIC_SEQUENCE_PEAK --> INITIAL: Reset
 
 INITIAL: Initial state on system start-up
-FAULT: System may enter this state from any state on error detection
+FAULT: System may enter this state from\nany state on error detection
+
+TRAFFIC_SEQUENCE_OFF_PEAK  --> TRAFFIC_SEQUENCE_OFF_PEAK: Mode: Off-peak
+TRAFFIC_SEQUENCE_PEAK  --> TRAFFIC_SEQUENCE_PEAK: Mode: Peak
+
+TRAFFIC_SEQUENCE_PEAK  --> TRAFFIC_SEQUENCE_OFF_PEAK: Mode: Off-peak
+TRAFFIC_SEQUENCE_OFF_PEAK  --> TRAFFIC_SEQUENCE_PEAK: Mode: Peak
 
 TRAFFIC_SEQUENCE_PEAK: Timer based state machine
 TRAFFIC_SEQUENCE_OFF_PEAK: Sensor driven state machine
+
+
 
 @enduml
 
 @startuml
 
 ' scale 500 width
-[*] -> TRAIN_PRESENT
-TRAIN_PRESENT --> NO_TRAIN_PRESENT: Train signal off
 
-NO_TRAIN_PRESENT --> FAULT: Controller signals fault
-TRAIN_PRESENT --> FAULT: Controller signals fault
-FAULT --> TRAIN_PRESENT: Controller signals no fault
+
+[*] --> TRAIN_PRESENT
+
+NO_TRAIN_PRESENT --> TRAIN_PRESENT : Train
+TRAIN_PRESENT --> NO_TRAIN_PRESENT: No Train
+NO_TRAIN_PRESENT --> FAULT: Fault
+TRAIN_PRESENT --> FAULT: Fault
+
+
+FAULT --> TRAIN_PRESENT: Reset
+TRAIN_PRESENT --> TRAIN_PRESENT: Reset
+NO_TRAIN_PRESENT --> TRAIN_PRESENT: Reset
+
+
+
 
 TRAIN_PRESENT: Boom gates down
 NO_TRAIN_PRESENT: Boom gates up

@@ -1,0 +1,329 @@
+@startuml
+
+(*)  --> "wait_request_msg()"
+-->log_msg()
+
+If "STATE_REQUEST_MSG" then
+--> "save_traffic_state()"
+-->(*)
+else
+If "RAIL_STATE_MSG" then
+--> "save_rail_state()"
+-->(*)
+else
+If "MODE_MSG" then
+--> "save_mode()"
+-->(*)
+else
+If "FAULT_MSG" then
+--> "save_fault()"
+--> "signal_fault()"
+-->(*)
+else
+If "RESET_MSG" then
+--> "signal_reset()"
+Endif
+-->(*)
+
+--> "send_reply()"
+--> "wait_request_msg()"
+
+@enduml
+
+
+
+@startuml
+
+(*)  --> "wait_rail_state_change()"
+--> "save_current_rail_state()"
+-->log_msg()
+
+--> "send_msg_to_rcc()"
+
+-->"wait_rail_state_change()"
+
+
+@enduml
+
+
+
+
+@startuml
+
+(*)  --> "wait_msg_recvieve()"
+
+If "RAIL_STATE_MSG" then
+--> "save_rail_state()"
+--> "spawn_thread_send_to_i1()"
+--> "spawn_thread_send_to_i2()"
+--> "wait_timeout()"
+
+If "TIMEOUT" then
+--> "cancel_thread()"
+--> (*)
+else
+--> (*)
+endif
+
+endif
+
+--> "wait_msg_recvieve()"
+
+
+
+
+@enduml
+
+
+
+
+@startuml
+
+(*)  --> "wait_interupt()"
+
+--> "read_keypad()"
+--> "save_input()"
+
+If "SENSOR" then
+--> "add_input_to_queue()"
+--> (*)
+
+else
+if "RESET" then
+--> "signal_reset()"
+--> (*)
+else
+if "FAULT" then
+--> "signal_fault()"
+endif
+endif
+endif
+--> (*)
+--> "wait_interupt()"
+
+
+@enduml
+
+
+
+@startuml
+
+(*)  --> "wait_change_state()"
+
+--> "get_traffic_state"
+--> "get_rail_state"
+
+--> decide_output()
+--> write_LCD()
+--> "wait_change_state()"
+
+@enduml
+
+
+@startuml
+
+(*)  --> "wait_change_state()"
+
+--> "get_rail_state"
+
+--> decide_output()
+--> write_LCD()
+--> "wait_change_state()"
+
+@enduml
+
+
+
+@startuml
+
+(*)  --> "wait_interupt()"
+
+--> "read_keypad()"
+--> "save_input()"
+
+If "SENSOR" then
+--> "signal_change_state()"
+--> (*)
+
+else
+if "RESET" then
+--> "signal_reset()"
+--> (*)
+else
+if "FAULT" then
+--> "signal_fault()"
+endif
+endif
+endif
+--> (*)
+--> "wait_interupt()"
+
+
+@enduml
+
+
+
+
+
+@startuml
+
+(*)  --> "wait_msg_recvieve()"
+
+If "GET_FUNC" then
+
+--> spawn_thread_get_i1()
+--> spawn_thread_get_i2()
+
+If "TIMEOUT" then
+--> "cancel_thread()"
+--> (*)
+else
+--> save_reply_data()
+--> (*)
+endif
+
+else
+if "SET_FUNC" then
+
+if "I1" then
+--> spawn_thread_set_i1()
+--> (*)
+else
+if "I2" then
+--> spawn_thread_set_i2()
+--> (*)
+--> "wait_msg_recvieve()"
+endif
+endif
+
+endif
+
+
+endif
+
+
+
+
+
+
+
+
+@enduml
+
+
+
+
+
+
+
+
+@startuml
+
+(*)  --> "wait_change_state()"
+--> read_state()
+--> send_to_tcc()
+--> wait_change_state()
+
+
+
+@enduml
+
+
+
+
+
+
+
+
+@startuml
+
+(*)  --> wait_msg_rcv()
+--> log_msg()
+--> save_state_from_msg()
+--> signal_ready_data()
+--> wait_msg_rcv()
+
+
+
+@enduml
+
+
+
+
+
+@startuml
+
+
+node "I1" {
+    [I1-main]
+    [I1-Input]
+    [I1-Output]
+    [I1-Server]
+    [I1-State Machine]
+}
+
+[I1-Input] <--> [I1-State Machine]
+[I1-Input] <--> [I1-Output]
+[I1-Input] <--> [I1-Server]
+[I1-Output] <--> [I1-State Machine]
+[I1-Output] <--> [I1-Server]
+[I1-Server] <--> [I1-State Machine]
+
+node "I2" {
+    [I2-main]
+    [I2-Input]
+    [I2-Output]
+    [I2-Server]
+    [I2-State Machine]
+}
+
+[I2-Input] <--> [I2-State Machine]
+[I2-Input] <--> [I2-Output]
+[I2-Input] <--> [I2-Server]
+[I2-Output] <--> [I2-State Machine]
+[I2-Output] <--> [I2-Server]
+[I2-Server] <--> [I2-State Machine]
+
+node "X1" {
+    [X1-main]
+    [X1-Input]
+    [X1-Output]
+    [X1-Client]
+    [X1-State Machine]
+}
+
+[X1-Input] <--> [X1-Output]
+[X1-Input] <--> [X1-Client]
+[X1-Input] <--> [X1-State Machine]
+
+[X1-Output] <--> [X1-Client]
+[X1-Output] <--> [X1-State Machine]
+[X1-State Machine] <--> [X1-Client]
+
+
+
+node "TCC" {
+    [TCC-Server]
+    [TCC-Client]
+    [TCC-ToolInput]
+    [Get Data]
+}
+
+[TCC-ToolInput] <--> [Get Data]
+[Get Data] <--> [TCC-Client]
+
+
+node "RCC" {
+    [RCC-Client]
+    [RCC-Server]
+}
+[TCC-Tool] --> [TCC-Server]
+
+[X1-Client]--> [RCC-Server]
+[RCC-Client] --> [TCC-Server]
+[TCC-Client] --> [I1-Server]
+[TCC-Client] --> [I2-Server]
+
+
+
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+
+package "Road Authority" {
+
+    node "TCC" {
+        [TCC-Tool] --> [TCC]
+    }
+    node {
+        [I1]
+    }
+    node {
+        [I2]
+    }
+
+    [TCC] --> [I1]
+    [TCC] --> [I2]
+    
+}
+
+package "Rail Authority" {
+    [RCC] --> [X1]
+}
+
+[RCC] --> [TCC]
+[TCC] --> [RCC]
+
+@enduml

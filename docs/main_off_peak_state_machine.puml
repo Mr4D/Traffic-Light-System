@@ -1,4 +1,4 @@
-@startuml STATE_MACHINE_SEQUENCE_OFF_PEAK
+@startuml
 
 [*]     --> INITIAL
 
